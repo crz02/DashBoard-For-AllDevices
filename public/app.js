@@ -19,8 +19,21 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Update URLs in Setup Modal
-function populateDynamicSetupUrls() {
-  const origin = window.location.origin;
+async function populateDynamicSetupUrls() {
+  let origin = window.location.origin;
+
+  try {
+    const res = await fetch('/api/tunnel');
+    const data = await res.json();
+    if (data.status === 'success' && data.url) {
+      origin = data.url;
+      const syncEl = document.getElementById('connectionStatus');
+      if (syncEl) {
+        const text = document.getElementById('connectionText');
+        if (text) text.textContent = 'Live Cloud HTTPS';
+      }
+    }
+  } catch (_) {}
 
   const macEl = document.getElementById('macOneLiner');
   if (macEl) macEl.textContent = `./agents/macos/report_battery.sh ${origin} macbook`;
@@ -29,7 +42,7 @@ function populateDynamicSetupUrls() {
   if (winEl) winEl.textContent = `powershell.exe -ExecutionPolicy Bypass -File .\\agents\\windows\\report_battery.ps1 -DashboardUrl "${origin}" -DeviceId "windows-laptop"`;
 
   const iosUrl = document.getElementById('iosWebhookUrl');
-  if (iosUrl) iosUrl.textContent = `POST ${origin}/api/report`;
+  if (iosUrl) iosUrl.textContent = `${origin}/api/report`;
 
   const androidUrl = document.getElementById('androidWebhook');
   if (androidUrl) androidUrl.textContent = `POST ${origin}/api/report`;

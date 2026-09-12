@@ -1,30 +1,40 @@
 # Android Setup Guide
 
-Connect your Android phone or tablet to the Dashboard with real-time battery percentage, charging state, and temperature.
+Connect your Android phone or tablet to the Dashboard with real-time battery percentage, charging state, and temperature over cellular 5G/4G or Wi-Fi.
 
 ---
 
-## 🚀 Option 1: MacroDroid / Tasker / HTTP Shortcuts (No coding required)
+## 🌐 Endpoint URLs
 
-1. Install **MacroDroid** or **Tasker** or **HTTP Shortcuts** from Google Play or F-Droid.
-2. Create a new trigger:
-   - **Trigger**: Power Connected / Disconnected OR Battery Level Drops Below 20% OR Periodic (every 15 mins).
-3. Create an **Action**: **HTTP Request**:
-   - **Method**: `POST`
-   - **URL**: `http://YOUR_SERVER_IP:8080/api/report`
-   - **Content-Type**: `application/json`
-   - **Body (JSON)**:
-     ```json
-     {
-       "device_id": "my-android",
-       "name": "Samsung Galaxy",
-       "platform": "android",
-       "battery_level": {battery_level},
-       "is_charging": {power_connected},
-       "power_source": "{power_source}"
-     }
-     ```
-4. Save and turn on the macro.
+- **Public HTTPS Webhook**: `https://bee-adaptive-legend-poor.trycloudflare.com/api/report`
+- *(Or local address when on the same Wi-Fi: `http://192.168.29.20:8080/api/report`)*
+
+---
+
+## 🚀 Option 1: MacroDroid / Tasker (No Coding, Recommended)
+
+1. Install **MacroDroid** (Free from Google Play Store).
+2. Tap **Add Macro**:
+   - **Triggers**:
+     - *Battery / Power* &rarr; **Power Connected / Disconnected**
+     - *(Optional)* *Battery / Power* &rarr; **Battery Level** (e.g. Falls below 20%)
+   - **Actions**:
+     - *Connectivity* &rarr; **HTTP Request**:
+       - **Method**: `POST`
+       - **URL**: `https://bee-adaptive-legend-poor.trycloudflare.com/api/report`
+       - **Content-Type**: `application/json`
+       - **Request Body (JSON)**:
+         ```json
+         {
+           "device_id": "my-android",
+           "name": "Samsung Galaxy",
+           "platform": "android",
+           "battery_level": {battery_level},
+           "is_charging": {power_connected},
+           "power_source": "{power_source}"
+         }
+         ```
+3. Save the macro and toggle it **ON**.
 
 ---
 
@@ -35,13 +45,13 @@ Connect your Android phone or tablet to the Dashboard with real-time battery per
    ```bash
    pkg update && pkg install termux-api jq curl
    ```
-3. Copy or curl the reporting script:
+3. Download the reporting script:
    ```bash
-   curl -sSL http://YOUR_SERVER_IP:8080/agents/android/report_battery_termux.sh -o report.sh
+   curl -sSL https://raw.githubusercontent.com/crz02/DashBoard/main/agents/android/report_battery_termux.sh -o report.sh
    chmod +x report.sh
-   ./report.sh http://YOUR_SERVER_IP:8080 my-android "My Galaxy Phone"
+   ./report.sh https://bee-adaptive-legend-poor.trycloudflare.com my-android "Galaxy Phone"
    ```
-4. Schedule in crontab (`pkg install cronie` -> `crontab -e`):
+4. Schedule in crontab (`pkg install cronie` &rarr; `crontab -e`):
    ```cron
-   */5 * * * * /data/data/com.termux/files/home/report.sh http://YOUR_SERVER_IP:8080 my-android >/dev/null 2>&1
+   */5 * * * * /data/data/com.termux/files/home/report.sh https://bee-adaptive-legend-poor.trycloudflare.com my-android >/dev/null 2>&1
    ```

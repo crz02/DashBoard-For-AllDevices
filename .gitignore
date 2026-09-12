@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Operating System
+.DS_Store
+Thumbs.db
+
+# Logs & temp files
+*.log
+/tmp/
+
+# SQLite database local state
+server/dashboard.db

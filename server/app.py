@@ -182,6 +182,20 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self.send_json({"status": "success", "running": simulator_running})
             return
 
+        # API: Public Tunnel URL
+        if path == "/api/tunnel":
+            tunnel_file = os.path.join(PUBLIC_DIR, "tunnel_url.json")
+            url = None
+            if os.path.isfile(tunnel_file):
+                try:
+                    with open(tunnel_file, "r") as f:
+                        url_data = json.load(f)
+                        url = url_data.get("url")
+                except Exception:
+                    pass
+            self.send_json({"status": "success", "url": url})
+            return
+
         # Serve static files from public/
         req_path = path.lstrip("/")
         if not req_path or req_path == "index.html":

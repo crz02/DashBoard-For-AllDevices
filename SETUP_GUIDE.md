@@ -6,10 +6,11 @@ This guide walks you through downloading, setting up, and connecting all your de
 
 ## 🧭 How It Works
 
-1. **The Server**: Runs on one computer (e.g., your MacBook or home computer) and hosts the dashboard web page and the reporting webhook API.
-2. **The Client Devices**: Each device sends a small HTTP update containing its battery percentage and status to the server:
-   - When on the same Wi-Fi network: uses your computer's local IP (e.g., `http://192.168.29.20:8080`).
-   - When away from home: can use a free tunnel like [Tailscale](https://tailscale.com) or [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/).
+1. **The Server**: Hosts your dashboard and a secure, public HTTPS reporting webhook.
+2. **Public HTTPS Everywhere**: We use a Cloudflare public HTTPS endpoint so your devices do **NOT** need to be on the same Wi-Fi and do **NOT** need local IP addresses.
+   - **Active Public URL**: `https://bee-adaptive-legend-poor.trycloudflare.com`
+   - **Local Web UI**: `http://localhost:8080`
+   - *(For permanent 24/7 cloud hosting without running your computer, see [cloud/CLOUD_DEPLOY_GUIDE.md](file:///Users/irfan/Documents/GitHub/DashBoard/cloud/CLOUD_DEPLOY_GUIDE.md)).*
 
 ---
 
@@ -69,15 +70,14 @@ Copy the file `agents/windows/report_battery.ps1` to your Windows PC (e.g., to `
 #### Step 2: Test via PowerShell
 Open PowerShell on your Windows PC and run:
 ```powershell
-powershell.exe -ExecutionPolicy Bypass -File C:\Scripts\report_battery.ps1 -DashboardUrl "http://192.168.29.20:8080" -DeviceId "windows-pc"
+powershell.exe -ExecutionPolicy Bypass -File C:\Scripts\report_battery.ps1 -DashboardUrl "https://bee-adaptive-legend-poor.trycloudflare.com" -DeviceId "windows-pc"
 ```
-*(Replace `192.168.29.20` with your server's actual local IP).*
 
 #### Step 3: Run Automatically via Windows Task Scheduler
 To schedule it to run every 5 minutes silently:
 1. Open PowerShell as Administrator and run:
    ```powershell
-   $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-WindowStyle Hidden -ExecutionPolicy Bypass -File C:\Scripts\report_battery.ps1 -DashboardUrl http://192.168.29.20:8080 -DeviceId windows-pc"
+   $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-WindowStyle Hidden -ExecutionPolicy Bypass -File C:\Scripts\report_battery.ps1 -DashboardUrl https://bee-adaptive-legend-poor.trycloudflare.com -DeviceId windows-pc"
    $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 5)
    Register-ScheduledTask -TaskName "DashboardBatteryReport" -Action $action -Trigger $trigger -Description "Reports battery to dashboard"
    ```
@@ -100,11 +100,11 @@ No apps or downloads needed! iOS has built-in webhook capability through Apple's
    - `battery_level` &rarr; Select the variable **Battery Level**
    - `is_charging` (Boolean) &rarr; `false`
 6. Tap **Add Action** &rarr; search for **"Get Contents of URL"**:
-   - URL: `http://192.168.29.20:8080/api/report` *(use your server's local IP)*
+   - URL: `https://bee-adaptive-legend-poor.trycloudflare.com/api/report`
    - Tap the arrow next to URL to expand options:
      - **Method**: `POST`
      - **Headers**: Add `Content-Type` with value `application/json`
-     - **Request Body**: Select `Dictionary`
+     - **Request Body**: Select `Dictionary` (the dictionary created in Step 5)
 7. Name the shortcut **"Report Battery"** and tap **Done**.
 
 #### Step 2: Set Up Automated Background Updates
@@ -133,7 +133,7 @@ You have two easy options on Android:
    - **Actions**:
      - Add action &rarr; **Connectivity** &rarr; **HTTP Request**
      - Method: `POST`
-     - URL: `http://192.168.29.20:8080/api/report`
+     - URL: `https://bee-adaptive-legend-poor.trycloudflare.com/api/report`
      - Content-Type: `application/json`
      - Body:
        ```json
@@ -155,9 +155,9 @@ You have two easy options on Android:
    ```
 3. Run the script:
    ```bash
-   curl -sSL http://192.168.29.20:8080/agents/android/report_battery_termux.sh -o report.sh
+   curl -sSL https://raw.githubusercontent.com/crz02/DashBoard/main/agents/android/report_battery_termux.sh -o report.sh
    chmod +x report.sh
-   ./report.sh http://192.168.29.20:8080 my-android "Samsung Galaxy"
+   ./report.sh https://bee-adaptive-legend-poor.trycloudflare.com my-android "Samsung Galaxy"
    ```
 
 ---
