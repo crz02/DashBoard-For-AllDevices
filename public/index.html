@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Device Battery Dashboard</title>
+  <meta name="description" content="Clean and usable multi-device battery and telemetry dashboard for macOS, Windows, iOS, and Android.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="layout">
+    <!-- Top Navigation Bar -->
+    <header class="topbar">
+      <div class="topbar-brand">
+        <span class="brand-icon">⚡</span>
+        <div class="brand-info">
+          <h1>Device Dashboard</h1>
+          <span class="sync-status" id="connectionStatus">
+            <span class="dot"></span>
+            <span id="connectionText">Connected</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="topbar-actions">
+        <label class="toggle-control" title="Toggle automatic battery changes for testing">
+          <input type="checkbox" id="simCheckbox">
+          <span class="toggle-track"></span>
+          <span class="toggle-text">Simulator</span>
+        </label>
+
+        <button class="btn btn-default" id="refreshBtn" title="Refresh data">Refresh</button>
+        <button class="btn btn-primary" id="openAddModalBtn">+ Connect Device</button>
+      </div>
+    </header>
+
+    <!-- Quick Stats Bar -->
+    <section class="metrics-row" aria-label="System Metrics">
+      <div class="metric-box">
+        <span class="metric-title">Total Devices</span>
+        <span class="metric-num" id="totalDevicesCount">0</span>
+        <span class="metric-sub" id="onlineDevicesBadge">0 online</span>
+      </div>
+
+      <div class="metric-box">
+        <span class="metric-title">Fleet Average</span>
+        <span class="metric-num" id="avgBatteryLevel">--%</span>
+        <span class="metric-sub" id="avgBatteryTrend">Steady</span>
+      </div>
+
+      <div class="metric-box">
+        <span class="metric-title">Charging</span>
+        <span class="metric-num" id="chargingCount">0</span>
+        <span class="metric-sub" id="chargingPill">AC connected</span>
+      </div>
+
+      <div class="metric-box">
+        <span class="metric-title">Low Battery (&lt;20%)</span>
+        <span class="metric-num" id="lowBatteryCount">0</span>
+        <span class="metric-sub" id="lowBatteryAlert">All ok</span>
+      </div>
+    </section>
+
+    <!-- Filter & View Controls -->
+    <div class="toolbar">
+      <div class="filter-group">
+        <button class="filter-btn active" data-filter="all">All Devices</button>
+        <button class="filter-btn" data-filter="macos">macOS</button>
+        <button class="filter-btn" data-filter="windows">Windows</button>
+        <button class="filter-btn" data-filter="ios">iOS</button>
+        <button class="filter-btn" data-filter="android">Android</button>
+      </div>
+      <div class="sync-time" id="lastSyncTime">Last updated: Just now</div>
+    </div>
+
+    <!-- Main Device Cards -->
+    <main class="device-list" id="devicesGrid" aria-label="Device Cards">
+      <!-- Injected via app.js -->
+    </main>
+
+    <!-- Battery History Section -->
+    <section class="chart-panel">
+      <div class="chart-header">
+        <div>
+          <h2>Battery History</h2>
+          <p class="section-desc">Battery level trends over time</p>
+        </div>
+        <div class="chart-actions">
+          <select id="chartDeviceSelect" class="form-select" aria-label="Select device">
+            <option value="all">All Devices Combined</option>
+          </select>
+          <div class="btn-group">
+            <button class="btn btn-sm time-btn" data-hours="6">6h</button>
+            <button class="btn btn-sm time-btn" data-hours="12">12h</button>
+            <button class="btn btn-sm time-btn active" data-hours="24">24h</button>
+          </div>
+        </div>
+      </div>
+      <div class="chart-wrapper">
+        <canvas id="batteryHistoryChart"></canvas>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <span>Device Telemetry Server</span>
+      <a href="#setupModal" id="footerSetupLink">Setup Instructions</a>
+    </footer>
+  </div>
+
+  <!-- Setup Modal -->
+  <div class="modal-overlay" id="setupModal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-box">
+      <div class="modal-head">
+        <div>
+          <h3>Connect Device</h3>
+          <p>Choose an OS to copy the reporting command</p>
+        </div>
+        <button class="close-btn" id="closeModalBtn" aria-label="Close">&times;</button>
+      </div>
+
+      <div class="modal-nav">
+        <button class="modal-nav-btn active" data-tab="macos">MacBook</button>
+        <button class="modal-nav-btn" data-tab="windows">Windows</button>
+        <button class="modal-nav-btn" data-tab="ios">iOS</button>
+        <button class="modal-nav-btn" data-tab="android">Android</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="tab-pane active" id="tab-macos">
+          <p class="tab-inst">Run in Terminal to send battery stats:</p>
+          <div class="code-row">
+            <code id="macOneLiner">./agents/macos/report_battery.sh http://localhost:8080 macbook</code>
+            <button class="btn btn-sm copy-code-btn" data-target="macOneLiner">Copy</button>
+          </div>
+          <p class="tab-inst" style="margin-top: 14px;">Run in background every 5 min via LaunchAgent:</p>
+          <div class="code-row">
+            <code id="macLaunchCmd">cp agents/macos/com.dashboard.battery.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/com.dashboard.battery.plist</code>
+            <button class="btn btn-sm copy-code-btn" data-target="macLaunchCmd">Copy</button>
+          </div>
+        </div>
+
+        <div class="tab-pane" id="tab-windows">
+          <p class="tab-inst">Run in Windows PowerShell:</p>
+          <div class="code-row">
+            <code id="winOneLiner">powershell.exe -ExecutionPolicy Bypass -File .\agents\windows\report_battery.ps1 -DashboardUrl "http://YOUR_SERVER_IP:8080" -DeviceId "windows-laptop"</code>
+            <button class="btn btn-sm copy-code-btn" data-target="winOneLiner">Copy</button>
+          </div>
+        </div>
+
+        <div class="tab-pane" id="tab-ios">
+          <p class="tab-inst">In iOS <strong>Shortcuts</strong> app, create a shortcut with action:</p>
+          <p class="tab-inst"><strong>Get Battery Level</strong> &rarr; <strong>Get Contents of URL</strong></p>
+          <div class="code-row">
+            <code id="iosWebhookUrl">POST http://YOUR_SERVER_IP:8080/api/report</code>
+            <button class="btn btn-sm copy-code-btn" data-target="iosWebhookUrl">Copy</button>
+          </div>
+          <p class="tab-inst" style="margin-top: 8px;">Trigger automatically under <strong>Automation &rarr; Charger Connected</strong>.</p>
+        </div>
+
+        <div class="tab-pane" id="tab-android">
+          <p class="tab-inst">Send HTTP POST from Tasker / MacroDroid / Termux:</p>
+          <div class="code-row">
+            <code id="androidWebhook">POST http://YOUR_SERVER_IP:8080/api/report</code>
+            <button class="btn btn-sm copy-code-btn" data-target="androidWebhook">Copy</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-foot">
+        <button class="btn btn-default" id="doneModalBtn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-stack" id="toastContainer"></div>
+  <script src="app.js"></script>
+</body>
+</html>
