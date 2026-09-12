@@ -1,4 +1,4 @@
-# OmniPulse — Multi-Device Battery & Telemetry Dashboard
+# Status — Multi-Device Battery & Telemetry Dashboard
 
 A clean, distraction-free dashboard to monitor real-time battery levels, charging status, and system telemetry across all your personal devices:
 - 🍎 **MacBook (macOS)**
