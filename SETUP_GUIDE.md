@@ -75,4 +75,4 @@ If you use [Tailscale](https://tailscale.com/) to connect your devices, you can 
 2. Make sure you entered the same **User ID** in the app settings that you are using to view the dashboard. If you left it blank in the app, it defaults to the `default` user.
 
 **The mobile app background sync isn't working (iOS):**
-iOS restricts how often apps can run in the background to save battery. The app will sync immediately when you open it. For guaranteed background syncs on iOS, set up the [Apple Shortcuts Automation](agents/ios/README.md) which triggers reliably every time you plug or unplug your phone.
+iOS restricts how often third-party apps can run in the background to save battery. The app will sync immediately when you open it.

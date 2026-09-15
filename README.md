@@ -12,7 +12,7 @@ Statuser provides native installable applications for all major platforms. The a
 
 Built with React Native (Expo). Features a mini-dashboard and background sync.
 
-- **iOS**: Uses Background Fetch (Note: iOS may throttle background execution. For guaranteed exact-minute updates, see the [Shortcuts Automation Guide](agents/ios/README.md)).
+- **iOS**: Uses Background Fetch (Note: iOS may throttle background execution for third party apps).
 - **Android**: Full background sync and hardware monitoring.
 
 **How to build/run:**
@@ -71,17 +71,6 @@ If you want to track your devices while away from home (e.g., tracking your phon
 We provide built-in support for **Cloudflare Tunnels** (Free, Secure, No Port Forwarding required).
 
 See the [Setup Guide](SETUP_GUIDE.md) for full instructions on making your dashboard public.
-
----
-
-## 🖥️ Headless Agents (Alternative for Servers)
-
-If you want to monitor a headless Linux server or prefer not to install a GUI app, we provide lightweight shell script agents.
-
-- [Linux Agent Guide](agents/linux/README.md) (systemd/cron)
-- [macOS Agent Guide](agents/macos/README.md) (LaunchAgent)
-- [Windows Agent Guide](agents/windows/README.md) (Scheduled Task)
-- [Android Termux Guide](agents/android/README.md) (cron)
 
 ---
 
