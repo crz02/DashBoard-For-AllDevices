@@ -347,6 +347,71 @@ async function testConnection(baseUrl: string, userId?: string): Promise<{ succe
   })
 }
 
+async function fetchDevices(
+  baseUrl: string,
+  userId?: string
+): Promise<{ success: boolean; isOffline?: boolean; devices?: any[]; message?: string }> {
+  if (!baseUrl) {
+    return { success: false, message: 'Dashboard URL is not configured' }
+  }
+
+  const cleanUrl = `${baseUrl.replace(/\/$/, '')}/api/devices${userId && userId !== 'default' ? `?user_id=${encodeURIComponent(userId)}` : ''}`
+
+  return new Promise((resolve) => {
+    try {
+      const request = net.request({
+        method: 'GET',
+        url: cleanUrl
+      })
+
+      const timer = setTimeout(() => {
+        request.abort()
+        resolve({
+          success: false,
+          isOffline: true,
+          message: `Connection timed out after 5s connecting to ${baseUrl}`
+        })
+      }, 5000)
+
+      let body = ''
+      request.on('response', (response) => {
+        response.on('data', (chunk) => {
+          body += chunk.toString()
+        })
+        response.on('end', () => {
+          clearTimeout(timer)
+          if (response.statusCode >= 200 && response.statusCode < 300) {
+            try {
+              const data = JSON.parse(body)
+              resolve({ success: true, devices: data.devices || [] })
+            } catch {
+              resolve({ success: false, message: 'Invalid JSON response from server' })
+            }
+          } else {
+            resolve({
+              success: false,
+              message: `Server returned HTTP status ${response.statusCode}`
+            })
+          }
+        })
+      })
+
+      request.on('error', () => {
+        clearTimeout(timer)
+        resolve({
+          success: false,
+          isOffline: true,
+          message: `Dashboard server is offline at ${baseUrl}`
+        })
+      })
+
+      request.end()
+    } catch (e: any) {
+      resolve({ success: false, message: e.message || 'Invalid server URL' })
+    }
+  })
+}
+
 // App lifecycle
 app.on('before-quit', () => {
   isQuitting = true
@@ -395,6 +460,26 @@ ipcMain.handle('get-telemetry', async () => {
 
 ipcMain.handle('trigger-report', async () => await triggerReport())
 ipcMain.handle('test-connection', async (_, url: string, userId?: string) => await testConnection(url, userId))
+ipcMain.handle('fetch-devices', async (_, url: string, userId?: string) => await fetchDevices(url, userId))
+ipcMain.handle('get-local-device', async () => {
+  const stats = await getTelemetry(store.get('deviceId') as string)
+  return {
+    id: stats.device_id,
+    name: stats.name,
+    platform: stats.platform,
+    model: stats.model,
+    battery_level: stats.battery_level,
+    is_charging: stats.is_charging,
+    power_source: stats.power_source,
+    battery_health: stats.battery_health,
+    cycle_count: stats.cycle_count,
+    cpu_usage: stats.cpu_usage,
+    ram_usage: stats.ram_usage,
+    last_seen: Math.floor(Date.now() / 1000),
+    is_online: true,
+    is_local: true
+  }
+})
 ipcMain.handle('get-app-info', () => ({
   name: 'Statuser',
   version: app.getVersion(),
