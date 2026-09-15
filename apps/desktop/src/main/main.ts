@@ -117,14 +117,19 @@ function createWindow() {
 
   const iconPath = join(__dirname, '../../resources/icon.png')
 
+  const isMac = process.platform === 'darwin'
+
   mainWindow = new BrowserWindow({
     width: 860,
     height: 640,
     minWidth: 500,
     minHeight: 520,
     show: false,
-    backgroundColor: '#090d16',
-    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    transparent: isMac,
+    vibrancy: isMac ? 'under-window' : undefined,
+    visualEffectState: 'active',
+    backgroundColor: isMac ? '#00000000' : '#090d16',
+    titleBarStyle: isMac ? 'hiddenInset' : 'default',
     trafficLightPosition: { x: 18, y: 18 },
     icon: iconPath,
     webPreferences: {

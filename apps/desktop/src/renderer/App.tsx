@@ -43,6 +43,10 @@ export default function App() {
 
   return (
     <div className="app-container">
+      {/* Liquid Glass Ambient Shimmer Glow */}
+      <div className="ambient-glow-orb-1" />
+      <div className="ambient-glow-orb-2" />
+
       {/* Draggable macOS Window Header with traffic light clearance */}
       <header className="titlebar-header">
         <div className="titlebar-left">
