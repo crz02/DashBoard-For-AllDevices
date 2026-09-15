@@ -1,14 +1,15 @@
-import { app, BrowserWindow, ipcMain, Tray, Menu } from 'electron'
+import { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, net } from 'electron'
 import { join } from 'path'
+import os from 'os'
 import Store from 'electron-store'
-import { getTelemetry } from './telemetry'
+import { getTelemetry, TelemetryPayload } from './telemetry'
 import { reportTelemetry } from './reporter'
 
 const store = new Store({
   defaults: {
     dashboardUrl: 'http://localhost:8080',
     userId: 'default',
-    deviceId: require('os').hostname().toLowerCase(),
+    deviceId: os.hostname().toLowerCase(),
     intervalMin: 5,
     autoStart: false
   }
@@ -17,19 +18,115 @@ const store = new Store({
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
 let reportInterval: NodeJS.Timeout | null = null
+let isQuitting = false
+let lastTelemetry: TelemetryPayload | null = null
+let lastReportTime: number | null = null
+let lastReportStatus: { success: boolean; message: string; timestamp: number } | null = null
+
+function setupApplicationMenu() {
+  const isMac = process.platform === 'darwin'
+  const template: Electron.MenuItemConstructorOptions[] = [
+    ...(isMac
+      ? [
+          {
+            label: app.name,
+            submenu: [
+              { role: 'about' as const },
+              { type: 'separator' as const },
+              {
+                label: 'Preferences...',
+                accelerator: 'Command+,',
+                click: () => {
+                  createWindow()
+                  mainWindow?.webContents.send('navigate-to', 'settings')
+                }
+              },
+              { type: 'separator' as const },
+              { role: 'services' as const },
+              { type: 'separator' as const },
+              { role: 'hide' as const },
+              { role: 'hideOthers' as const },
+              { role: 'unhide' as const },
+              { type: 'separator' as const },
+              {
+                label: 'Quit Statuser',
+                accelerator: 'Command+Q',
+                click: () => {
+                  isQuitting = true
+                  app.quit()
+                }
+              }
+            ]
+          }
+        ]
+      : []),
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' as const },
+        { role: 'redo' as const },
+        { type: 'separator' as const },
+        { role: 'cut' as const },
+        { role: 'copy' as const },
+        { role: 'paste' as const },
+        { role: 'selectAll' as const }
+      ]
+    },
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' as const },
+        { role: 'forceReload' as const },
+        { role: 'toggleDevTools' as const },
+        { type: 'separator' as const },
+        { role: 'resetZoom' as const },
+        { role: 'zoomIn' as const },
+        { role: 'zoomOut' as const },
+        { type: 'separator' as const },
+        { role: 'togglefullscreen' as const }
+      ]
+    },
+    {
+      label: 'Window',
+      submenu: [
+        { role: 'minimize' as const },
+        { role: 'zoom' as const },
+        ...(isMac
+          ? [
+              { type: 'separator' as const },
+              { role: 'front' as const },
+              { type: 'separator' as const },
+              { role: 'window' as const }
+            ]
+          : [{ role: 'close' as const }])
+      ]
+    }
+  ]
+
+  const menu = Menu.buildFromTemplate(template)
+  Menu.setApplicationMenu(menu)
+}
 
 function createWindow() {
   if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore()
     mainWindow.show()
+    mainWindow.focus()
     return
   }
 
+  const iconPath = join(__dirname, '../../resources/icon.png')
+
   mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
-    minWidth: 400,
-    minHeight: 500,
+    width: 860,
+    height: 640,
+    minWidth: 500,
+    minHeight: 520,
     show: false,
+    backgroundColor: '#090d16',
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    trafficLightPosition: { x: 18, y: 18 },
+    icon: iconPath,
     webPreferences: {
       preload: join(__dirname, '../preload/preload.js'),
       nodeIntegration: false,
@@ -37,20 +134,19 @@ function createWindow() {
     }
   })
 
-  // Set icon based on platform
-  // const iconPath = join(__dirname, '../../resources/icon.png')
-  // mainWindow.setIcon(iconPath)
-
   mainWindow.on('ready-to-show', () => {
     mainWindow?.show()
   })
 
   mainWindow.on('close', (event) => {
-    // Hide instead of close to keep running in background
-    if (!app.isQuitting) {
+    if (!isQuitting) {
       event.preventDefault()
       mainWindow?.hide()
     }
+  })
+
+  mainWindow.on('closed', () => {
+    mainWindow = null
   })
 
   if (process.env.NODE_ENV === 'development') {
@@ -60,40 +156,121 @@ function createWindow() {
   }
 }
 
-function setupTray() {
-  // Try to use a default icon if resource doesn't exist yet
-  // tray = new Tray(join(__dirname, '../../resources/icon.png'))
-  // Using native image for now, later we can add the actual icon
-  const { nativeImage } = require('electron')
-  const icon = nativeImage.createEmpty() // Placeholder
-  tray = new Tray(icon)
-  tray.setToolTip('Statuser Agent')
-  
+function updateTrayMenu() {
+  if (!tray) return
+
+  const batteryText = lastTelemetry
+    ? `${lastTelemetry.battery_level}% • ${lastTelemetry.is_charging ? '⚡ Charging' : lastTelemetry.power_source}`
+    : 'Connecting...'
+
+  const lastSyncText = lastReportTime
+    ? `Last sync: ${new Date(lastReportTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+    : 'Not synced yet'
+
   const contextMenu = Menu.buildFromTemplate([
-    { label: 'Open Dashboard', click: createWindow },
-    { label: 'Report Now', click: triggerReport },
+    { label: 'Statuser Telemetry Agent', enabled: false },
+    { label: batteryText, enabled: false },
+    { label: lastSyncText, enabled: false },
     { type: 'separator' },
-    { label: 'Quit', click: () => {
-      app.isQuitting = true
-      app.quit()
-    }}
+    {
+      label: 'Open Dashboard App',
+      click: () => {
+        createWindow()
+      }
+    },
+    {
+      label: 'Report Now',
+      click: async () => {
+        await triggerReport()
+      }
+    },
+    { type: 'separator' },
+    {
+      label: 'Settings...',
+      click: () => {
+        createWindow()
+        mainWindow?.webContents.send('navigate-to', 'settings')
+      }
+    },
+    { type: 'separator' },
+    {
+      label: 'Quit Statuser',
+      accelerator: 'CommandOrControl+Q',
+      click: () => {
+        isQuitting = true
+        app.quit()
+      }
+    }
   ])
-  
+
   tray.setContextMenu(contextMenu)
-  tray.on('double-click', createWindow)
+
+  // On macOS menu bar, update title with battery %
+  if (process.platform === 'darwin' && lastTelemetry) {
+    tray.setTitle(` ${lastTelemetry.battery_level}%`)
+  }
+}
+
+function setupTray() {
+  const trayIconPath = join(__dirname, '../../resources/trayTemplate.png')
+  let icon = nativeImage.createFromPath(trayIconPath)
+
+  if (icon.isEmpty()) {
+    // Fallback if image not found on disk
+    icon = nativeImage.createEmpty()
+  } else {
+    icon.setTemplateImage(true)
+  }
+
+  tray = new Tray(icon)
+  tray.setToolTip('Statuser Agent — Telemetry Monitor')
+  updateTrayMenu()
+
+  tray.on('click', () => {
+    createWindow()
+  })
+
+  tray.on('double-click', () => {
+    createWindow()
+  })
 }
 
 async function triggerReport() {
   const url = store.get('dashboardUrl') as string
   const userId = store.get('userId') as string
   const deviceId = store.get('deviceId') as string
-  
+
   try {
     const stats = await getTelemetry(deviceId)
+    lastTelemetry = stats
+
     await reportTelemetry(url, userId, stats)
-    return { success: true, stats }
+    lastReportTime = Date.now()
+    lastReportStatus = {
+      success: true,
+      message: `Reported successfully to ${url}`,
+      timestamp: lastReportTime
+    }
+
+    updateTrayMenu()
+
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('report-status', lastReportStatus)
+      mainWindow.webContents.send('telemetry-updated', stats)
+    }
+
+    return { success: true, stats, timestamp: lastReportTime }
   } catch (error: any) {
-    console.error('Report failed:', error)
+    lastReportStatus = {
+      success: false,
+      message: error.message || 'Connection failed',
+      timestamp: Date.now()
+    }
+
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('report-status', lastReportStatus)
+    }
+
     return { success: false, error: error.message }
   }
 }
@@ -101,26 +278,82 @@ async function triggerReport() {
 function setupBackgroundTimer() {
   if (reportInterval) {
     clearInterval(reportInterval)
+    reportInterval = null
   }
-  
-  const intervalMin = store.get('intervalMin') as number
+
+  const intervalMin = (store.get('intervalMin') as number) ?? 5
   if (intervalMin > 0) {
     reportInterval = setInterval(triggerReport, intervalMin * 60 * 1000)
-    // Run once immediately
-    triggerReport()
+    // Run initial report after 1 second so window can finish bootstrapping
+    setTimeout(triggerReport, 1000)
   }
 }
 
 function updateAutoStart() {
   const autoStart = store.get('autoStart') as boolean
-  app.setLoginItemSettings({
-    openAtLogin: autoStart,
-    openAsHidden: true
+  try {
+    app.setLoginItemSettings({
+      openAtLogin: !!autoStart,
+      openAsHidden: true
+    })
+  } catch (err: any) {
+    console.warn('Unable to configure auto start item:', err.message)
+  }
+}
+
+async function testConnection(baseUrl: string, userId?: string): Promise<{ success: boolean; latencyMs?: number; message: string }> {
+  if (!baseUrl) {
+    return { success: false, message: 'URL is required' }
+  }
+
+  const startTime = Date.now()
+  const cleanUrl = `${baseUrl.replace(/\/$/, '')}/api/devices${userId && userId !== 'default' ? `?user_id=${encodeURIComponent(userId)}` : ''}`
+
+  return new Promise((resolve) => {
+    try {
+      const request = net.request({
+        method: 'GET',
+        url: cleanUrl
+      })
+
+      const timer = setTimeout(() => {
+        request.abort()
+        resolve({ success: false, message: 'Connection timed out after 5 seconds' })
+      }, 5000)
+
+      request.on('response', (response) => {
+        clearTimeout(timer)
+        const latencyMs = Date.now() - startTime
+        if (response.statusCode >= 200 && response.statusCode < 400) {
+          resolve({ success: true, latencyMs, message: `Connected (${latencyMs}ms)` })
+        } else {
+          resolve({
+            success: false,
+            latencyMs,
+            message: `Server returned HTTP ${response.statusCode}`
+          })
+        }
+      })
+
+      request.on('error', (err) => {
+        clearTimeout(timer)
+        resolve({ success: false, message: err.message || 'Cannot reach server' })
+      })
+
+      request.end()
+    } catch (e: any) {
+      resolve({ success: false, message: e.message || 'Invalid URL' })
+    }
   })
 }
 
 // App lifecycle
+app.on('before-quit', () => {
+  isQuitting = true
+})
+
 app.whenReady().then(() => {
+  setupApplicationMenu()
   createWindow()
   setupTray()
   setupBackgroundTimer()
@@ -131,13 +364,13 @@ app.whenReady().then(() => {
       createWindow()
     } else {
       mainWindow?.show()
+      mainWindow?.focus()
     }
   })
 })
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
-    // We want it to keep running in background usually, but if no tray, we should quit
     if (!tray) app.quit()
   }
 })
@@ -146,11 +379,28 @@ app.on('window-all-closed', () => {
 ipcMain.handle('get-config', () => store.store)
 ipcMain.handle('set-config', (_, key, value) => {
   store.set(key, value)
-  
+
   if (key === 'intervalMin') setupBackgroundTimer()
   if (key === 'autoStart') updateAutoStart()
-  
+
   return store.store
 })
-ipcMain.handle('get-telemetry', async () => await getTelemetry(store.get('deviceId') as string))
+
+ipcMain.handle('get-telemetry', async () => {
+  const stats = await getTelemetry(store.get('deviceId') as string)
+  lastTelemetry = stats
+  updateTrayMenu()
+  return stats
+})
+
 ipcMain.handle('trigger-report', async () => await triggerReport())
+ipcMain.handle('test-connection', async (_, url: string, userId?: string) => await testConnection(url, userId))
+ipcMain.handle('get-app-info', () => ({
+  name: 'Statuser',
+  version: app.getVersion(),
+  electron: process.versions.electron,
+  node: process.versions.node,
+  platform: process.platform,
+  arch: process.arch,
+  osRelease: os.release()
+}))

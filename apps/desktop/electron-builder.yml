@@ -8,8 +8,10 @@ directories:
 
 files:
   - dist/**/*
+  - resources/**/*
 
 mac:
+  icon: resources/icon.icns
   category: public.app-category.utilities
   target:
     - dmg
