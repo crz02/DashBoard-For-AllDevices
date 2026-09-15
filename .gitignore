@@ -20,3 +20,10 @@ public/tunnel_url.json
 
 # SQLite database local state
 server/dashboard.db
+
+# Dependencies & Build Outputs
+node_modules/
+release/
+dist/
+.expo/
+

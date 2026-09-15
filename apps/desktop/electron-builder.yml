@@ -8,7 +8,6 @@ directories:
 
 files:
   - dist/**/*
-  - "!node_modules/**/*"
 
 mac:
   category: public.app-category.utilities
