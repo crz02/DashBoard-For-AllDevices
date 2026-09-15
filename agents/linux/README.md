@@ -1,5 +1,8 @@
 # Statuser — Linux Agent
 
+> [!TIP]
+> **Prefer a visual app?** Statuser now has a full desktop app for Linux that runs in the system tray and provides deeper hardware metrics. Check out [Statuser Desktop](../../README.md#desktop). This shell script remains available as a lightweight, headless alternative for servers.
+
 Report battery level, health, CPU, RAM, and temperature from your Linux machine to the Statuser dashboard.
 
 Works on **Ubuntu, Fedora, Debian, Arch Linux, Pop!_OS, Mint**, and any Linux distribution with `/sys/class/power_supply/`. Desktops and servers without batteries report as always-plugged-in.

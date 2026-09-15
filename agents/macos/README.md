@@ -1,5 +1,8 @@
 # Statuser — macOS Agent
 
+> [!TIP]
+> **Prefer a visual app?** Statuser now has a full desktop app for macOS that runs in the menu bar and provides deeper hardware metrics. Check out [Statuser Desktop](../../README.md#desktop). This shell script remains available as a lightweight, headless alternative for servers.
+
 Report battery level, health, cycle count, CPU, and RAM from your Mac to the Statuser dashboard.
 
 Works on **MacBook Air, MacBook Pro, iMac, Mac Mini, and Mac Pro** (desktops report as always-plugged-in).

@@ -1,5 +1,8 @@
 # Statuser — iOS Agent (iPhone & iPad)
 
+> [!TIP]
+> **Prefer a visual app?** Statuser now has a full native mobile app for iOS. Check out [Statuser Mobile](../../README.md#mobile). This Shortcuts guide remains available as an alternative for exact-minute background syncs without relying on iOS Background Fetch.
+
 Track your iPhone or iPad battery on the Statuser dashboard using Apple's native **Shortcuts** app. No third-party apps, profiles, or jailbreaks required.
 
 ---

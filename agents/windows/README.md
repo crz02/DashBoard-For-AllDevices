@@ -1,5 +1,8 @@
 # Statuser — Windows Agent
 
+> [!TIP]
+> **Prefer a visual app?** Statuser now has a full desktop app for Windows that runs in the system tray and provides deeper hardware metrics. Check out [Statuser Desktop](../../README.md#desktop). This script remains available as a lightweight, headless alternative.
+
 Report battery level, CPU, and RAM from your Windows PC or laptop to the Statuser dashboard.
 
 Works on **Windows 10/11** laptops and desktops. Desktops without batteries report as always-plugged-in.
