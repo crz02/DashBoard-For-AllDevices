@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Device Battery Dashboard</title>
-  <meta name="description" content="Clean and usable multi-device battery and telemetry dashboard for macOS, Windows, iOS, and Android.">
+  <title>Statuser — Device Battery Dashboard</title>
+  <meta name="description" content="Statuser: Clean and usable multi-device battery and telemetry dashboard for macOS, Windows, iOS, and Android.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -18,7 +18,7 @@
       <div class="topbar-brand">
         <span class="brand-icon">⚡</span>
         <div class="brand-info">
-          <h1>Device Dashboard</h1>
+          <h1>Statuser</h1>
           <span class="sync-status" id="connectionStatus">
             <span class="dot"></span>
             <span id="connectionText">Connected</span>
@@ -35,6 +35,16 @@
 
         <button class="btn btn-default" id="refreshBtn" title="Refresh data">Refresh</button>
         <button class="btn btn-primary" id="openAddModalBtn">+ Connect Device</button>
+        <div id="authNavArea" class="topbar-auth-wrapper">
+          <a href="/signin" class="topbar-signin-btn" id="navSignInBtn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+              <polyline points="10 17 15 12 10 7"></polyline>
+              <line x1="15" y1="12" x2="3" y2="12"></line>
+            </svg>
+            Sign In
+          </a>
+        </div>
       </div>
     </header>
 
@@ -73,6 +83,7 @@
         <button class="filter-btn" data-filter="windows">Windows</button>
         <button class="filter-btn" data-filter="ios">iOS</button>
         <button class="filter-btn" data-filter="android">Android</button>
+        <button class="filter-btn" data-filter="linux">Linux</button>
       </div>
       <div class="sync-time" id="lastSyncTime">Last updated: Just now</div>
     </div>
@@ -107,8 +118,10 @@
 
     <!-- Footer -->
     <footer class="footer">
-      <span>Device Telemetry Server</span>
-      <a href="#setupModal" id="footerSetupLink">Setup Instructions</a>
+      <span>Statuser — Device Telemetry Dashboard</span>
+      <div style="display: flex; gap: 16px; align-items: center;">
+        <a href="#setupModal" id="footerSetupLink">Setup Instructions</a>
+      </div>
     </footer>
   </div>
 
@@ -128,6 +141,7 @@
         <button class="modal-nav-btn" data-tab="windows">Windows</button>
         <button class="modal-nav-btn" data-tab="ios">iOS</button>
         <button class="modal-nav-btn" data-tab="android">Android</button>
+        <button class="modal-nav-btn" data-tab="linux">Linux</button>
       </div>
 
       <div class="modal-body">
@@ -167,6 +181,19 @@
           <div class="code-row">
             <code id="androidWebhook">POST http://YOUR_SERVER_IP:8080/api/report</code>
             <button class="btn btn-sm copy-code-btn" data-target="androidWebhook">Copy</button>
+          </div>
+        </div>
+
+        <div class="tab-pane" id="tab-linux">
+          <p class="tab-inst">Run in Terminal to send battery stats:</p>
+          <div class="code-row">
+            <code id="linuxOneLiner">./agents/linux/report_battery.sh http://localhost:8080 linux-laptop</code>
+            <button class="btn btn-sm copy-code-btn" data-target="linuxOneLiner">Copy</button>
+          </div>
+          <p class="tab-inst" style="margin-top: 14px;">Auto-install as a systemd timer (runs every 5 min):</p>
+          <div class="code-row">
+            <code id="linuxInstallCmd">./agents/linux/report_battery.sh --install http://localhost:8080</code>
+            <button class="btn btn-sm copy-code-btn" data-target="linuxInstallCmd">Copy</button>
           </div>
         </div>
       </div>

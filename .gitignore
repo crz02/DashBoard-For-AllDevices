@@ -8,9 +8,15 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
+# Environment secrets
+.env
+
 # Logs & temp files
 *.log
 /tmp/
+
+# Transient tunnel URL (generated at runtime)
+public/tunnel_url.json
 
 # SQLite database local state
 server/dashboard.db

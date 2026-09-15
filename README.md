@@ -1,115 +1,97 @@
-# Status — Multi-Device Battery & Telemetry Dashboard
+# Statuser
 
-A clean, distraction-free dashboard to monitor real-time battery levels, charging status, and system telemetry across all your personal devices:
-- 🍎 **MacBook (macOS)**
-- 🪟 **Windows PC & Laptops**
-- 📱 **iOS (iPhone & iPad)**
-- 🤖 **Android Phones & Tablets**
+Statuser is a self-hosted dashboard that tracks the battery level, CPU, RAM, and temperature of all your devices across macOS, Windows, Linux, iOS, and Android.
 
-![Platform Support](https://img.shields.io/badge/Platforms-macOS%20%7C%20Windows%20%7C%20iOS%20%7C%20Android-06B6D4?style=for-the-badge)
-![Cloud Ready](https://img.shields.io/badge/Cloud-HTTPS%20%7C%20Everywhere-10B981?style=for-the-badge)
-![Realtime](https://img.shields.io/badge/Sync-SSE%20Realtime-6366F1?style=for-the-badge)
+![Statuser Dashboard Screenshot](docs/screenshot.png) <!-- Update with actual screenshot later -->
 
-> 📖 **Guides & Documentation**:
-> - **[SETUP_GUIDE.md](SETUP_GUIDE.md)**: Step-by-step device connection instructions for iPhone, Android, Windows, and Mac.
-> - **[cloud/CLOUD_DEPLOY_GUIDE.md](cloud/CLOUD_DEPLOY_GUIDE.md)**: 24/7 permanent cloud deployment on Vercel + Supabase.
+## 🚀 Native Applications
 
----
+Statuser provides native installable applications for all major platforms. The apps monitor your device in the background and report telemetry to your dashboard.
 
-## 🌟 Key Features
+### 📱 Statuser Mobile (iOS & Android)
 
-- **🌐 Cloud & Public HTTPS Enabled**: Works over cellular (5G/4G) and any Wi-Fi. No local IP hassle or router port forwarding.
-- **⚡ Real-Time Live Sync (SSE)**: Instant UI updates whenever any device reports battery or state changes.
-- **🧼 Clean, High-Usability UI**: Fast, readable, minimalist design focused on quick scanning without visual bloat.
-- **📈 Fleet Battery Analytics**: 24-hour battery history chart (powered by Chart.js) with single-device or fleet views.
-- **🛡️ Native Zero-Bloat Clients**:
-  - **macOS**: Built-in shell script reading `pmset -g batt` & `system_profiler SPPowerDataType` (reports cycles & capacity).
-  - **Windows**: Built-in PowerShell script querying `Win32_Battery` via WMI/CIM.
-  - **iOS**: Apple Shortcuts automation (`Get Battery Level` + `POST` to public HTTPS webhook).
-  - **Android**: Termux script or MacroDroid/Tasker automation.
-- **🎮 Built-In Live Simulator**: One-click simulator to preview live charging and battery drain across all device cards.
+Built with React Native (Expo). Features a mini-dashboard and background sync.
 
----
+- **iOS**: Uses Background Fetch (Note: iOS may throttle background execution. For guaranteed exact-minute updates, see the [Shortcuts Automation Guide](agents/ios/README.md)).
+- **Android**: Full background sync and hardware monitoring.
 
-## 🚀 Quick Start
-
-### 1. Start the Local Server
+**How to build/run:**
 ```bash
-python3 server/app.py
+cd apps/mobile
+npm install
+npx expo start
 ```
-Open **[http://localhost:8080](http://localhost:8080)** in your browser!
 
-### 2. Enable Public HTTPS Tunnel (For iOS & Remote Devices)
-In another terminal, start the instant public Cloudflare tunnel:
+### 💻 Statuser Desktop (macOS, Windows, Linux)
+
+Built with Electron. Runs silently in your system tray/menu bar and monitors deep hardware metrics (Battery Health, CPU Usage, RAM Usage, Temperature).
+
+**How to build/run:**
 ```bash
-./scripts/start_public_tunnel.sh
+cd apps/desktop
+npm install
+npm run dev
+
+# Package for your platform
+npm run package
 ```
-This prints your public HTTPS URL (e.g. `https://your-tunnel.trycloudflare.com`). Now any iPhone, Android phone, or laptop can connect to your dashboard and webhook from anywhere!
 
 ---
 
-## 📲 Device Setup Summary
+## 🛠️ Getting Started (The Dashboard Server)
 
-| Platform | Reporting Method | Setup Command / Guide |
-|---|---|---|
-| **🍎 MacBook** | Native bash (`pmset`) | `./agents/macos/report_battery.sh <URL> macbook` |
-| **🪟 Windows** | PowerShell (`Win32_Battery`) | `powershell.exe -File .\agents\windows\report_battery.ps1 -DashboardUrl <URL>` |
-| **📱 iOS** | Apple Shortcuts app | See [agents/ios/SHORTCUT_GUIDE.md](agents/ios/SHORTCUT_GUIDE.md) |
-| **🤖 Android** | MacroDroid / Tasker / Termux | See [agents/android/ANDROID_GUIDE.md](agents/android/ANDROID_GUIDE.md) |
+To use the apps, you need to run the Statuser Dashboard Server.
 
-*Full step-by-step instructions available in **[SETUP_GUIDE.md](SETUP_GUIDE.md)**.*
+### 1. Start the Server
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/Statuser.git
+cd Statuser
+
+# Start the server (Requires Python 3)
+./start_server.sh
+```
+
+The dashboard will be available at `http://localhost:8080`.
+
+### 2. Connect Your Devices
+
+1. Open the Statuser App on your device (Desktop or Mobile).
+2. Go to **Settings**.
+3. Enter your Dashboard URL (e.g., `http://192.168.1.50:8080` for local network).
+4. The device will instantly appear on your dashboard!
 
 ---
 
-## 🛠️ REST API Specification
+## 🌍 Accessing Over the Internet
 
-### Report Device Status
-`POST /api/report`
-```json
-{
-  "device_id": "iphone",
-  "name": "Irfan's iPhone",
-  "platform": "ios",
-  "battery_level": 88,
-  "is_charging": true,
-  "power_source": "AC Power"
-}
-```
+If you want to track your devices while away from home (e.g., tracking your phone while on cellular data), your dashboard server needs a public URL.
 
-### Endpoints
-- `GET /api/devices`: List all registered devices and latest battery states.
-- `GET /api/devices/{id}/history?hours=24`: Historical battery drain data for charting.
-- `GET /api/events`: Server-Sent Events (SSE) real-time stream.
-- `GET /api/tunnel`: Active public HTTPS tunnel address.
+We provide built-in support for **Cloudflare Tunnels** (Free, Secure, No Port Forwarding required).
+
+See the [Setup Guide](SETUP_GUIDE.md) for full instructions on making your dashboard public.
 
 ---
 
-## 📁 Repository Structure
-```
-├── agents/
-│   ├── macos/
-│   │   ├── report_battery.sh
-│   │   └── com.dashboard.battery.plist
-│   ├── windows/
-│   │   └── report_battery.ps1
-│   ├── ios/
-│   │   └── SHORTCUT_GUIDE.md
-│   └── android/
-│       ├── report_battery_termux.sh
-│       └── ANDROID_GUIDE.md
-├── cloud/
-│   ├── CLOUD_DEPLOY_GUIDE.md  # 24/7 Vercel + Supabase setup
-│   └── supabase_schema.sql    # Supabase PostgreSQL schema
-├── public/
-│   ├── index.html             # Clean, responsive dashboard HTML
-│   ├── styles.css             # Minimalist, high-usability CSS
-│   └── app.js                 # Realtime SSE client & Chart.js
-├── scripts/
-│   └── start_public_tunnel.sh # Instant Cloudflare public HTTPS tunnel
-├── server/
-│   ├── app.py                 # Threaded server, REST API & SSE
-│   ├── database.py            # SQLite schema & persistence
-│   └── dashboard.db           # SQLite database file
-├── SETUP_GUIDE.md             # Comprehensive multi-device setup guide
-└── README.md
-```
+## 🖥️ Headless Agents (Alternative for Servers)
+
+If you want to monitor a headless Linux server or prefer not to install a GUI app, we provide lightweight shell script agents.
+
+- [Linux Agent Guide](agents/linux/README.md) (systemd/cron)
+- [macOS Agent Guide](agents/macos/README.md) (LaunchAgent)
+- [Windows Agent Guide](agents/windows/README.md) (Scheduled Task)
+- [Android Termux Guide](agents/android/README.md) (cron)
+
+---
+
+## 🔒 Multi-User Support
+
+Statuser supports multiple users on a single dashboard instance. 
+In your App Settings, configure a **User ID**. Only devices sharing the same User ID will see each other in the dashboard.
+
+---
+
+## License
+
+MIT

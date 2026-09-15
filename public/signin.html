@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In — Statuser</title>
+  <meta name="description" content="Sign in to Statuser multi-device battery and telemetry dashboard.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Clerk JS is loaded dynamically by signin.js when a valid key is configured in .env -->
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:            #0d1117;
+      --surface:       #161b22;
+      --surface-2:     #1c2128;
+      --border:        #30363d;
+      --border-muted:  #21262d;
+      --text-main:     #f0f6fc;
+      --text-muted:    #8b949e;
+      --text-sub:      #6e7681;
+      --green:         #2ea043;
+      --blue:          #58a6ff;
+      --blue-btn:      #1f6feb;
+      --red:           #f85149;
+      --font:          'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --mono:          'JetBrains Mono', monospace;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      font-size: 14px;
+    }
+
+    /* ── Topbar ─────────────────────────────────────────────── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 32px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border-muted);
+      gap: 12px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; }
+    .brand-icon { font-size: 1.3rem; }
+    .brand-name { font-size: 1.1rem; font-weight: 700; line-height: 1; }
+    .brand-sub  { font-size: 0.71rem; color: var(--text-muted); margin-top: 2px; }
+    .topbar-nav { display: flex; gap: 8px; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px; font-size: 0.8rem; font-weight: 500;
+      border-radius: 7px; border: 1px solid var(--border);
+      background: var(--surface-2); color: var(--text-main);
+      cursor: pointer; text-decoration: none; font-family: var(--font);
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .btn:hover { background: #21262d; border-color: #484f58; }
+
+    /* ── Main Layout ────────────────────────────────────────── */
+    main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    .auth-container {
+      width: 100%;
+      max-width: 440px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+    }
+
+    /* Loading state */
+    #loadingBox {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 20px;
+      gap: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      width: 100%;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+    }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid var(--border);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #loadingLabel { font-size: 0.84rem; color: var(--text-muted); }
+
+    /* Error box */
+    #errorBox {
+      display: none;
+      width: 100%;
+      background: rgba(248,81,73,0.1);
+      border: 1px solid rgba(248,81,73,0.3);
+      border-radius: 10px;
+      padding: 16px 18px;
+      font-size: 0.84rem;
+      color: #ff9492;
+      line-height: 1.6;
+    }
+    #errorBox code {
+      font-family: var(--mono);
+      background: rgba(255,255,255,0.08);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    #errorBox a { color: var(--blue); }
+
+    /* ── Clerk Element Theming Overrides ───────────────────── */
+    #clerkMount {
+      width: 100%;
+      min-height: 320px;
+      display: none;
+    }
+
+    #clerkMount .cl-rootBox,
+    #clerkMount .cl-cardBox {
+      width: 100% !important;
+      box-shadow: 0 20px 48px rgba(0, 0, 0, 0.55) !important;
+      border-radius: 12px !important;
+    }
+
+    #clerkMount .cl-card {
+      width: 100% !important;
+      background-color: #161b22 !important;
+      border: 1px solid #30363d !important;
+      border-radius: 12px !important;
+      box-shadow: none !important;
+      overflow: hidden !important;
+    }
+
+    #clerkMount [class*="cl-main"],
+    #clerkMount [class*="cl-card__main"] {
+      background-color: #161b22 !important;
+      background-image: none !important;
+    }
+
+    #clerkMount [class*="cl-headerTitle"] {
+      color: #f0f6fc !important;
+      font-size: 1.3rem !important;
+      font-weight: 700 !important;
+      letter-spacing: -0.2px !important;
+    }
+
+    #clerkMount [class*="cl-headerSubtitle"] {
+      color: #8b949e !important;
+      font-size: 0.86rem !important;
+      margin-top: 4px !important;
+    }
+
+    /* Social Login Buttons — ONLY style the button element */
+    #clerkMount button[class*="cl-socialButtonsBlockButton"],
+    #clerkMount button[class*="cl-socialButtonsIconButton"] {
+      background-color: #21262d !important;
+      border: 1px solid #38444d !important;
+      color: #f0f6fc !important;
+      border-radius: 8px !important;
+      box-shadow: none !important;
+      transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease !important;
+      position: relative !important;
+    }
+
+    #clerkMount button[class*="cl-socialButtonsBlockButton"]:hover,
+    #clerkMount button[class*="cl-socialButtonsIconButton"]:hover {
+      background-color: #282f37 !important;
+      border-color: #58a6ff !important;
+      box-shadow: 0 0 14px rgba(88, 166, 255, 0.22) !important;
+    }
+
+    /* Strip any nested border/box from ANY child inside the social buttons except the badge */
+    #clerkMount button[class*="cl-socialButtonsBlockButton"] *:not([class*="badge"]):not([class*="Badge"]),
+    #clerkMount button[class*="cl-socialButtonsIconButton"] *:not([class*="badge"]):not([class*="Badge"]) {
+      border: none !important;
+      outline: none !important;
+      box-shadow: none !important;
+      background: transparent !important;
+    }
+
+    /* Reset text span inside social button so it has NO border or background */
+    #clerkMount [class*="cl-socialButtonsBlockButtonText"],
+    #clerkMount [class*="socialButtonsBlockButtonText"] {
+      color: #f0f6fc !important;
+      font-weight: 600 !important;
+      font-size: 0.9rem !important;
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      outline: none !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+
+    /* Invert black Apple and GitHub icons to pure white */
+    #clerkMount button[class*="cl-socialButtonsIconButton"] img:not([alt*="Google"]):not([alt*="google"]),
+    #clerkMount button[class*="cl-socialButtonsIconButton"] svg:not([aria-label*="Google"]):not([aria-label*="google"]),
+    #clerkMount img[alt*="Apple" i],
+    #clerkMount img[alt*="GitHub" i] {
+      filter: invert(1) brightness(1.8) !important;
+    }
+
+    /* "Last used" badge clean alignment */
+    #clerkMount [class*="cl-badge"],
+    #clerkMount [class*="lastAuthenticationStrategyBadge"],
+    #clerkMount [class*="cl-lastAuthenticationStrategyBadge"] {
+      background-color: #21262d !important;
+      color: #79c0ff !important;
+      border: 1px solid #38444d !important;
+      font-weight: 600 !important;
+      font-size: 0.72rem !important;
+      border-radius: 10px !important;
+      padding: 2px 8px !important;
+    }
+
+    /* Form Fields */
+    #clerkMount [class*="cl-formFieldInput"] {
+      background-color: #0d1117 !important;
+      border: 1px solid #30363d !important;
+      color: #f0f6fc !important;
+      border-radius: 7px !important;
+      height: 40px !important;
+      font-size: 0.9rem !important;
+    }
+
+    #clerkMount [class*="cl-formFieldInput"]:focus {
+      border-color: #58a6ff !important;
+      box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.25) !important;
+    }
+
+    #clerkMount [class*="cl-formFieldLabel"] {
+      color: #c9d1d9 !important;
+      font-size: 0.83rem !important;
+      font-weight: 500 !important;
+    }
+
+    /* Primary submit button */
+    #clerkMount [class*="cl-formButtonPrimary"] {
+      background-color: #1f6feb !important;
+      color: #ffffff !important;
+      font-weight: 600 !important;
+      border-radius: 7px !important;
+      height: 40px !important;
+      font-size: 0.9rem !important;
+      transition: background-color 0.15s ease !important;
+    }
+
+    #clerkMount [class*="cl-formButtonPrimary"]:hover {
+      background-color: #388bfd !important;
+    }
+
+    /* Divider */
+    #clerkMount [class*="cl-dividerLine"] {
+      background-color: #30363d !important;
+    }
+
+    #clerkMount [class*="cl-dividerText"] {
+      color: #8b949e !important;
+      font-size: 0.8rem !important;
+    }
+
+    /* Footer: completely remove diagonal stripes and dev mode overlays */
+    #clerkMount [class*="cl-footer"],
+    #clerkMount [class*="cl-footer"] *,
+    #clerkMount [class*="cl-footer"] *::before,
+    #clerkMount [class*="cl-footer"] *::after {
+      background-image: none !important;
+      mask-image: none !important;
+      -webkit-mask-image: none !important;
+    }
+
+    #clerkMount [class*="cl-footer"] div[style*="pointer-events: none"],
+    #clerkMount [class*="cl-footer"] div[style*="position: absolute"],
+    #clerkMount [class*="cl-footer"] div:empty {
+      display: none !important;
+      visibility: hidden !important;
+    }
+
+    #clerkMount [class*="cl-footer"] {
+      background-color: #12161c !important;
+      border-top: 1px solid #21262d !important;
+    }
+
+    #clerkMount [class*="cl-footerActionText"] {
+      color: #8b949e !important;
+      font-size: 0.85rem !important;
+    }
+
+    #clerkMount [class*="cl-footerActionLink"] {
+      color: #58a6ff !important;
+      font-weight: 500 !important;
+      text-decoration: none !important;
+    }
+
+    #clerkMount [class*="cl-footerActionLink"]:hover {
+      color: #79c0ff !important;
+      text-decoration: underline !important;
+    }
+
+    /* Sub-links below the card */
+    .auth-sublinks {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.8rem;
+    }
+    .sublink {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+    .sublink:hover {
+      color: var(--blue);
+      text-decoration: underline;
+    }
+    .sublink-dot {
+      color: var(--text-sub);
+    }
+
+    /* ── Page footer ────────────────────────────────────────── */
+    .page-foot {
+      padding: 16px 20px;
+      text-align: center;
+      font-size: 0.73rem;
+      color: var(--text-sub);
+      border-top: 1px solid var(--border-muted);
+    }
+    .page-foot a { color: var(--blue); text-decoration: none; }
+    .page-foot a:hover { text-decoration: underline; }
+
+    /* ── Toasts ─────────────────────────────────────────────── */
+    .toast-stack {
+      position: fixed; bottom: 20px; right: 20px;
+      z-index: 9999; display: flex; flex-direction: column; gap: 8px;
+    }
+    .toast {
+      background: #21262d; border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 16px;
+      font-size: 0.82rem; color: var(--text-main);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+      opacity: 0; transform: translateX(16px);
+      transition: opacity 0.22s, transform 0.22s;
+    }
+    .toast.show { opacity: 1; transform: translateX(0); }
+    .toast.ok   { border-left: 3px solid var(--green); }
+    .toast.err  { border-left: 3px solid var(--red); }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <a href="/" class="brand">
+    <span class="brand-icon">⚡</span>
+    <div>
+      <div class="brand-name">Statuser</div>
+      <div class="brand-sub">Device Telemetry Dashboard</div>
+    </div>
+  </a>
+  <nav class="topbar-nav">
+    <a href="/" class="btn" title="View setup guide in the project's SETUP_GUIDE.md">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2">
+        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+      </svg>
+      Setup Guide
+    </a>
+    <a href="/" class="btn">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2">
+        <line x1="19" y1="12" x2="5" y2="12"/>
+        <polyline points="12 19 5 12 12 5"/>
+      </svg>
+      Dashboard
+    </a>
+  </nav>
+</header>
+
+<main>
+  <div class="auth-container">
+    <!-- Error display -->
+    <div id="errorBox"></div>
+
+    <!-- Loading state -->
+    <div id="loadingBox">
+      <div class="spinner"></div>
+      <span id="loadingLabel">Loading authentication…</span>
+    </div>
+
+    <!-- Clerk Mount — The Clerk component is rendered directly as the card! -->
+    <div id="clerkMount"></div>
+
+    <!-- Sub-links below the card -->
+    <div class="auth-sublinks">
+      <a href="/" class="sublink">← Return to Dashboard</a>
+      <span class="sublink-dot">•</span>
+      <a href="/" class="sublink">Device Setup Guide</a>
+    </div>
+  </div>
+</main>
+
+<footer class="page-foot">
+  Statuser Telemetry &nbsp;•&nbsp; Secured with Clerk Authentication
+</footer>
+
+<div id="toastStack" class="toast-stack"></div>
+
+<script src="signin.js?v=7"></script>
+</body>
+</html>

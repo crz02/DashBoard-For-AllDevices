@@ -1,0 +1,35 @@
+appId: com.statuser.desktop
+productName: Statuser
+copyright: Copyright © 2024 Statuser
+
+directories:
+  output: release
+  buildResources: resources
+
+files:
+  - dist/**/*
+  - "!node_modules/**/*"
+
+mac:
+  category: public.app-category.utilities
+  target:
+    - dmg
+    - zip
+  artifactName: "${productName}-${version}-${os}-${arch}.${ext}"
+
+win:
+  target:
+    - nsis
+  artifactName: "${productName}-${version}-${os}.${ext}"
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Utility
+  artifactName: "${productName}-${version}-${os}-${arch}.${ext}"

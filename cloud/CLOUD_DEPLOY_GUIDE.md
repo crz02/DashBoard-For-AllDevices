@@ -1,6 +1,6 @@
 # Cloud Architecture & Remote Sync Guide
 
-OmniPulse supports two cloud-first approaches to eliminate local IP restrictions and allow your **iPhone**, **Android**, **Windows**, and **MacBook** to report battery data from anywhere in the world over cellular 5G/4G or Wi-Fi.
+Statuser supports two cloud-first approaches to eliminate local IP restrictions and allow your **iPhone**, **Android**, **Windows**, and **MacBook** to report battery data from anywhere in the world over cellular 5G/4G or Wi-Fi.
 
 ---
 

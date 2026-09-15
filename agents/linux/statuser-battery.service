@@ -1,0 +1,9 @@
+[Unit]
+Description=Statuser Battery Reporter
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Replace the path and URL below with your actual values
+ExecStart=/path/to/agents/linux/report_battery.sh http://YOUR_DASHBOARD_URL linux-laptop

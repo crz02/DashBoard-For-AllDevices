@@ -14,58 +14,212 @@ def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Devices table
+    # 1. Users table
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS devices (
+    CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
+        email TEXT,
         name TEXT NOT NULL,
-        platform TEXT NOT NULL, -- 'macos', 'windows', 'ios', 'android'
-        model TEXT,
-        token TEXT,
-        battery_level INTEGER DEFAULT 100,
-        is_charging INTEGER DEFAULT 0,
-        power_source TEXT DEFAULT 'Battery',
-        battery_health TEXT DEFAULT 'Good',
-        cycle_count INTEGER DEFAULT 0,
-        temperature REAL DEFAULT 0,
-        cpu_usage REAL DEFAULT 0,
-        ram_usage REAL DEFAULT 0,
-        ip_address TEXT,
-        last_seen INTEGER NOT NULL,
-        created_at INTEGER NOT NULL
+        avatar_url TEXT,
+        role TEXT DEFAULT 'user',
+        created_at INTEGER NOT NULL,
+        last_active INTEGER NOT NULL
     )
     """)
+
+    # 2. Check and migrate devices table for user_id support
+    cursor.execute("PRAGMA table_info(devices)")
+    dev_cols = [c[1] for c in cursor.fetchall()]
     
-    # Battery historical logs table
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS battery_logs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        device_id TEXT NOT NULL,
-        percentage INTEGER NOT NULL,
-        is_charging INTEGER NOT NULL,
-        power_source TEXT,
-        battery_health TEXT,
-        cycle_count INTEGER,
-        temperature REAL,
-        cpu_usage REAL,
-        ram_usage REAL,
-        timestamp INTEGER NOT NULL,
-        FOREIGN KEY (device_id) REFERENCES devices (id) ON DELETE CASCADE
-    )
-    """)
+    if not dev_cols:
+        cursor.execute("""
+        CREATE TABLE devices (
+            user_id TEXT NOT NULL DEFAULT 'default',
+            id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            platform TEXT NOT NULL, -- 'macos', 'windows', 'ios', 'android'
+            model TEXT,
+            token TEXT,
+            battery_level INTEGER DEFAULT 100,
+            is_charging INTEGER DEFAULT 0,
+            power_source TEXT DEFAULT 'Battery',
+            battery_health TEXT DEFAULT 'Good',
+            cycle_count INTEGER DEFAULT 0,
+            temperature REAL DEFAULT 0,
+            cpu_usage REAL DEFAULT 0,
+            ram_usage REAL DEFAULT 0,
+            ip_address TEXT,
+            last_seen INTEGER NOT NULL,
+            created_at INTEGER NOT NULL,
+            PRIMARY KEY (user_id, id)
+        )
+        """)
+    elif "user_id" not in dev_cols:
+        cursor.execute("ALTER TABLE devices RENAME TO old_devices")
+        cursor.execute("""
+        CREATE TABLE devices (
+            user_id TEXT NOT NULL DEFAULT 'default',
+            id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            platform TEXT NOT NULL,
+            model TEXT,
+            token TEXT,
+            battery_level INTEGER DEFAULT 100,
+            is_charging INTEGER DEFAULT 0,
+            power_source TEXT DEFAULT 'Battery',
+            battery_health TEXT DEFAULT 'Good',
+            cycle_count INTEGER DEFAULT 0,
+            temperature REAL DEFAULT 0,
+            cpu_usage REAL DEFAULT 0,
+            ram_usage REAL DEFAULT 0,
+            ip_address TEXT,
+            last_seen INTEGER NOT NULL,
+            created_at INTEGER NOT NULL,
+            PRIMARY KEY (user_id, id)
+        )
+        """)
+        cursor.execute("""
+        INSERT INTO devices (
+            user_id, id, name, platform, model, token, battery_level,
+            is_charging, power_source, battery_health, cycle_count,
+            temperature, cpu_usage, ram_usage, ip_address, last_seen, created_at
+        )
+        SELECT
+            'default', id, name, platform, model, token, battery_level,
+            is_charging, power_source, battery_health, cycle_count,
+            temperature, cpu_usage, ram_usage, ip_address, last_seen, created_at
+        FROM old_devices
+        """)
+        cursor.execute("DROP TABLE old_devices")
+
+    # 3. Check and migrate battery_logs table for user_id support
+    cursor.execute("PRAGMA table_info(battery_logs)")
+    log_cols = [c[1] for c in cursor.fetchall()]
     
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_battery_logs_dev_time ON battery_logs(device_id, timestamp)")
+    if not log_cols:
+        cursor.execute("""
+        CREATE TABLE battery_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL DEFAULT 'default',
+            device_id TEXT NOT NULL,
+            percentage INTEGER NOT NULL,
+            is_charging INTEGER NOT NULL,
+            power_source TEXT,
+            battery_health TEXT,
+            cycle_count INTEGER,
+            temperature REAL,
+            cpu_usage REAL,
+            ram_usage REAL,
+            timestamp INTEGER NOT NULL
+        )
+        """)
+    elif "user_id" not in log_cols:
+        cursor.execute("ALTER TABLE battery_logs RENAME TO old_battery_logs")
+        cursor.execute("""
+        CREATE TABLE battery_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL DEFAULT 'default',
+            device_id TEXT NOT NULL,
+            percentage INTEGER NOT NULL,
+            is_charging INTEGER NOT NULL,
+            power_source TEXT,
+            battery_health TEXT,
+            cycle_count INTEGER,
+            temperature REAL,
+            cpu_usage REAL,
+            ram_usage REAL,
+            timestamp INTEGER NOT NULL
+        )
+        """)
+        cursor.execute("""
+        INSERT INTO battery_logs (
+            id, user_id, device_id, percentage, is_charging, power_source,
+            battery_health, cycle_count, temperature, cpu_usage, ram_usage, timestamp
+        )
+        SELECT
+            id, 'default', device_id, percentage, is_charging, power_source,
+            battery_health, cycle_count, temperature, cpu_usage, ram_usage, timestamp
+        FROM old_battery_logs
+        """)
+        cursor.execute("DROP TABLE old_battery_logs")
+
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_battery_logs_user_dev_time ON battery_logs(user_id, device_id, timestamp)")
     conn.commit()
     conn.close()
+
+def upsert_user(user_id, email=None, name=None, avatar_url=None, role="user", conn=None):
+    """Register or update a user profile."""
+    if not user_id:
+        return None
+    should_close = False
+    if conn is None:
+        conn = get_db_connection()
+        should_close = True
+    cursor = conn.cursor()
+    now = int(time.time())
+
+    cursor.execute("SELECT id, email, name, avatar_url, role FROM users WHERE id = ?", (user_id,))
+    existing = cursor.fetchone()
+
+    if existing:
+        eff_email = email if email is not None else existing["email"]
+        eff_name = name if name is not None else existing["name"]
+        eff_avatar = avatar_url if avatar_url is not None else existing["avatar_url"]
+        cursor.execute("""
+        UPDATE users SET
+            email = ?,
+            name = ?,
+            avatar_url = ?,
+            last_active = ?
+        WHERE id = ?
+        """, (eff_email, eff_name, eff_avatar, now, user_id))
+    else:
+        cursor.execute("""
+        INSERT INTO users (id, email, name, avatar_url, role, created_at, last_active)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (user_id, email or "", name or user_id, avatar_url or "", role, now, now))
+
+    if should_close:
+        conn.commit()
+    cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+    row = cursor.fetchone()
+    user = dict(row) if row else None
+    if should_close:
+        conn.close()
+    return user
+
+def get_user(user_id):
+    """Fetch single user profile."""
+    if not user_id:
+        return None
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+def get_all_users():
+    """List all registered users."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, email, name, avatar_url, role, last_active FROM users ORDER BY last_active DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
 
 def upsert_device_telemetry(device_id, name, platform, battery_level, is_charging=False,
                             power_source="Battery", battery_health=None, cycle_count=None,
                             temperature=None, cpu_usage=None, ram_usage=None, ip_address=None,
-                            model=None, token=None):
+                            model=None, token=None, user_id="default"):
+    """Upsert telemetry scoped strictly to user_id."""
     conn = get_db_connection()
     cursor = conn.cursor()
     now = int(time.time())
     
+    # Ensure user exists (reusing current DB connection)
+    upsert_user(user_id=user_id, name=user_id.replace("_", " ").title(), conn=conn)
+
     # Ensure battery level is constrained 0-100
     try:
         battery_level = max(0, min(100, int(battery_level)))
@@ -74,12 +228,11 @@ def upsert_device_telemetry(device_id, name, platform, battery_level, is_chargin
         
     is_charging_val = 1 if is_charging else 0
     
-    # Check if device exists
-    cursor.execute("SELECT id, name, platform, model, battery_health, cycle_count FROM devices WHERE id = ?", (device_id,))
+    # Check if device exists under this user
+    cursor.execute("SELECT id, name, platform, model, battery_health, cycle_count FROM devices WHERE user_id = ? AND id = ?", (user_id, device_id))
     existing = cursor.fetchone()
     
     if existing:
-        # Keep existing fields if not provided
         eff_name = name or existing["name"]
         eff_platform = platform or existing["platform"]
         eff_model = model or existing["model"]
@@ -101,44 +254,45 @@ def upsert_device_telemetry(device_id, name, platform, battery_level, is_chargin
             ram_usage = COALESCE(?, ram_usage),
             ip_address = COALESCE(?, ip_address),
             last_seen = ?
-        WHERE id = ?
+        WHERE user_id = ? AND id = ?
         """, (
             eff_name, eff_platform, eff_model, battery_level, is_charging_val,
             power_source, eff_health, eff_cycles, temperature, cpu_usage, ram_usage,
-            ip_address, now, device_id
+            ip_address, now, user_id, device_id
         ))
     else:
         cursor.execute("""
         INSERT INTO devices (
-            id, name, platform, model, token, battery_level, is_charging,
+            user_id, id, name, platform, model, token, battery_level, is_charging,
             power_source, battery_health, cycle_count, temperature, cpu_usage,
             ram_usage, ip_address, last_seen, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
-            device_id, name or device_id, platform or "unknown", model or "",
+            user_id, device_id, name or device_id, platform or "unknown", model or "",
             token or "", battery_level, is_charging_val, power_source,
             battery_health or "Good", cycle_count or 0, temperature or 0,
             cpu_usage or 0, ram_usage or 0, ip_address or "", now, now
         ))
         
-    # Also record in battery_logs
+    # Also record in battery_logs under this user
     cursor.execute("""
     INSERT INTO battery_logs (
-        device_id, percentage, is_charging, power_source, battery_health,
+        user_id, device_id, percentage, is_charging, power_source, battery_health,
         cycle_count, temperature, cpu_usage, ram_usage, timestamp
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
-        device_id, battery_level, is_charging_val, power_source,
+        user_id, device_id, battery_level, is_charging_val, power_source,
         battery_health, cycle_count, temperature, cpu_usage, ram_usage, now
     ))
     
     conn.commit()
     conn.close()
 
-def get_all_devices(offline_threshold_sec=300):
+def get_all_devices(user_id="default", offline_threshold_sec=300):
+    """Retrieve only devices belonging to user_id."""
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM devices ORDER BY last_seen DESC")
+    cursor.execute("SELECT * FROM devices WHERE user_id = ? ORDER BY last_seen DESC", (user_id,))
     rows = cursor.fetchall()
     now = int(time.time())
     
@@ -152,30 +306,30 @@ def get_all_devices(offline_threshold_sec=300):
     conn.close()
     return devices
 
-def get_device_history(device_id=None, hours=24, max_points=200):
+def get_device_history(user_id="default", device_id=None, hours=24, max_points=200):
+    """Retrieve history points strictly for user_id."""
     conn = get_db_connection()
     cursor = conn.cursor()
     since = int(time.time()) - (hours * 3600)
     
-    if device_id:
+    if device_id and device_id != "all":
         cursor.execute("""
         SELECT device_id, percentage, is_charging, power_source, timestamp
         FROM battery_logs
-        WHERE device_id = ? AND timestamp >= ?
+        WHERE user_id = ? AND device_id = ? AND timestamp >= ?
         ORDER BY timestamp ASC
-        """, (device_id, since))
+        """, (user_id, device_id, since))
     else:
         cursor.execute("""
         SELECT device_id, percentage, is_charging, power_source, timestamp
         FROM battery_logs
-        WHERE timestamp >= ?
+        WHERE user_id = ? AND timestamp >= ?
         ORDER BY timestamp ASC
-        """, (since,))
+        """, (user_id, since))
         
     rows = cursor.fetchall()
     conn.close()
     
-    # Downsample if too many points to keep graphs lightning-fast
     total = len(rows)
     if total <= max_points:
         return [dict(r) for r in rows]
@@ -186,122 +340,15 @@ def get_device_history(device_id=None, hours=24, max_points=200):
         sampled.append(dict(rows[-1]))
     return sampled
 
-def delete_device(device_id):
+def delete_device(user_id, device_id):
+    """Delete a device scoped strictly to user_id."""
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM battery_logs WHERE device_id = ?", (device_id,))
-    cursor.execute("DELETE FROM devices WHERE id = ?", (device_id,))
+    cursor.execute("DELETE FROM battery_logs WHERE user_id = ? AND device_id = ?", (user_id, device_id))
+    cursor.execute("DELETE FROM devices WHERE user_id = ? AND id = ?", (user_id, device_id))
     conn.commit()
     conn.close()
 
 def seed_sample_data_if_empty():
-    """Seed initial realistic data so the dashboard is immediately impressive and usable."""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT COUNT(*) as count FROM devices")
-    row = cursor.fetchone()
-    if row["count"] > 0:
-        conn.close()
-        return
-
-    now = int(time.time())
-    # Create sample devices: MacBook Pro, Windows PC, iPhone 16 Pro, Galaxy S24
-    samples = [
-        {
-            "id": "macbook-pro",
-            "name": "MacBook Pro 16\"",
-            "platform": "macos",
-            "model": "Apple M3 Pro",
-            "battery_level": 80,
-            "is_charging": 0,
-            "power_source": "AC Power",
-            "battery_health": "93% (Normal)",
-            "cycle_count": 208,
-            "temperature": 32.5,
-            "cpu_usage": 14.2,
-            "ram_usage": 58.4,
-            "ip_address": "192.168.1.45",
-            "history": [88, 86, 84, 83, 82, 81, 80]
-        },
-        {
-            "id": "windows-pc",
-            "name": "Dell XPS 15",
-            "platform": "windows",
-            "model": "Intel Core i7-13700H",
-            "battery_level": 64,
-            "is_charging": 1,
-            "power_source": "AC Power",
-            "battery_health": "89% (Good)",
-            "cycle_count": 312,
-            "temperature": 41.0,
-            "cpu_usage": 28.5,
-            "ram_usage": 67.1,
-            "ip_address": "192.168.1.112",
-            "history": [45, 49, 53, 58, 61, 64]
-        },
-        {
-            "id": "iphone-16",
-            "name": "iPhone 16 Pro",
-            "platform": "ios",
-            "model": "iOS 18.2",
-            "battery_level": 42,
-            "is_charging": 0,
-            "power_source": "Battery",
-            "battery_health": "98% (Normal)",
-            "cycle_count": 84,
-            "temperature": 28.0,
-            "cpu_usage": 8.0,
-            "ram_usage": 45.0,
-            "ip_address": "192.168.1.78",
-            "history": [65, 61, 56, 50, 46, 42]
-        },
-        {
-            "id": "galaxy-s24",
-            "name": "Samsung Galaxy S24 Ultra",
-            "platform": "android",
-            "model": "Android 15 (One UI 7)",
-            "battery_level": 19,
-            "is_charging": 0,
-            "power_source": "Battery",
-            "battery_health": "Good",
-            "cycle_count": 142,
-            "temperature": 34.2,
-            "cpu_usage": 11.5,
-            "ram_usage": 52.0,
-            "ip_address": "192.168.1.92",
-            "history": [45, 38, 32, 26, 22, 19]
-        }
-    ]
-
-    for s in samples:
-        cursor.execute("""
-        INSERT INTO devices (
-            id, name, platform, model, token, battery_level, is_charging,
-            power_source, battery_health, cycle_count, temperature, cpu_usage,
-            ram_usage, ip_address, last_seen, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            s["id"], s["name"], s["platform"], s["model"], "secret-token",
-            s["battery_level"], s["is_charging"], s["power_source"],
-            s["battery_health"], s["cycle_count"], s["temperature"],
-            s["cpu_usage"], s["ram_usage"], s["ip_address"], now, now - 86400
-        ))
-        
-        # Populate realistic history for charts
-        hist = s["history"]
-        count = len(hist)
-        for i, pct in enumerate(hist):
-            t = now - ((count - 1 - i) * 1800) # every 30 mins
-            cursor.execute("""
-            INSERT INTO battery_logs (
-                device_id, percentage, is_charging, power_source, battery_health,
-                cycle_count, temperature, cpu_usage, ram_usage, timestamp
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                s["id"], pct, s["is_charging"], s["power_source"],
-                s["battery_health"], s["cycle_count"], s["temperature"],
-                s["cpu_usage"], s["ram_usage"], t
-            ))
-
-    conn.commit()
-    conn.close()
+    """Fresh database initialization for real telemetry."""
+    pass
