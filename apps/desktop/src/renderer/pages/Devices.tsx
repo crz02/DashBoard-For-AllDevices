@@ -258,7 +258,7 @@ export default function Devices({ onToast }: DevicesProps) {
                           border: '1px solid rgba(129, 140, 248, 0.4)'
                         }}
                       >
-                        This Mac
+                        {localDevice?.platform === 'windows' ? 'This PC' : localDevice?.platform === 'macos' ? 'This Mac' : 'This Device'}
                       </span>
                     )}
 

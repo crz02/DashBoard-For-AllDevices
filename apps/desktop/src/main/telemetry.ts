@@ -117,21 +117,75 @@ function getMacHardwareInfo() {
   return { cpu_model, thermal_state }
 }
 
-function getDiskStats() {
+async function getDiskStats() {
   try {
-    const df = execSync('df -h / | awk "NR==2 {print \\$2, \\$3, \\$4, \\$5}"', { encoding: 'utf8', timeout: 1500 })
-      .trim()
-      .split(/\s+/)
-    if (df.length >= 4) {
-      return {
-        total: df[0],
-        used: df[1],
-        free: df[2],
-        percent: parseInt(df[3], 10) || 0
+    const disks = await si.fsSize()
+    if (Array.isArray(disks) && disks.length > 0) {
+      let target = disks.find(d => process.platform === 'win32' ? d.mount.toLowerCase().startsWith('c') : d.mount === '/')
+      if (!target) {
+        // Pick drive with largest capacity
+        target = disks.slice().sort((a, b) => (b.size || 0) - (a.size || 0))[0]
+      }
+      if (target && target.size > 0) {
+        const toGB = (b: number) => `${(b / (1024 ** 3)).toFixed(0)}Gi`
+        const used = target.used || (target.size - target.available)
+        const percent = Math.round(target.use || (used / target.size) * 100)
+        return {
+          total: toGB(target.size),
+          used: toGB(used),
+          free: toGB(target.available),
+          percent: Math.min(100, Math.max(0, percent))
+        }
       }
     }
   } catch {
-    // ignore
+    // fallback
+  }
+
+  if (process.platform === 'darwin' || process.platform === 'linux') {
+    try {
+      const df = execSync('df -h / | awk "NR==2 {print \\$2, \\$3, \\$4, \\$5}"', { encoding: 'utf8', timeout: 1500, windowsHide: true })
+        .trim()
+        .split(/\s+/)
+      if (df.length >= 4) {
+        return {
+          total: df[0],
+          used: df[1],
+          free: df[2],
+          percent: parseInt(df[3], 10) || 0
+        }
+      }
+    } catch {
+      // ignore
+    }
+  } else if (process.platform === 'win32') {
+    try {
+      const wmic = execSync('wmic logicaldisk where "DeviceID=\'C:\'" get FreeSpace,Size /format:csv', {
+        encoding: 'utf8',
+        timeout: 3000,
+        windowsHide: true
+      }).trim()
+      const lines = wmic.split('\n').filter(l => l.trim())
+      if (lines.length >= 2) {
+        const parts = lines[lines.length - 1].split(',')
+        if (parts.length >= 3) {
+          const freeBytes = parseInt(parts[1], 10)
+          const totalBytes = parseInt(parts[2], 10)
+          if (totalBytes > 0) {
+            const usedBytes = totalBytes - freeBytes
+            const toGB = (b: number) => `${(b / 1024 ** 3).toFixed(0)}Gi`
+            return {
+              total: toGB(totalBytes),
+              used: toGB(usedBytes),
+              free: toGB(freeBytes),
+              percent: Math.round((usedBytes / totalBytes) * 100)
+            }
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
   }
   return { total: 'N/A', used: 'N/A', free: 'N/A', percent: 0 }
 }
@@ -204,10 +258,23 @@ export async function getTelemetry(deviceId: string): Promise<TelemetryPayload> 
           battery_health = `${healthPct}%`
         }
         cycle_count = battery.cyclecount || 0
+        if (battery.timeRemaining && battery.timeRemaining > 0) {
+          const hrs = Math.floor(battery.timeRemaining / 60)
+          const mins = battery.timeRemaining % 60
+          time_remaining = hrs > 0 ? `${hrs}h ${mins}m left` : `${mins}m left`
+        }
       } else {
         power_source = 'AC Power (Desktop)'
         battery_health = 'N/A (Desktop)'
       }
+    } catch {
+      // ignore
+    }
+
+    // CPU model for Windows/Linux
+    try {
+      const cpuInfo = await si.cpu()
+      cpu_model = cpuInfo.brand || cpuInfo.manufacturer || ''
     } catch {
       // ignore
     }
@@ -237,7 +304,7 @@ export async function getTelemetry(deviceId: string): Promise<TelemetryPayload> 
   const ram_total_gb = `${(mem.total / 1024 ** 3).toFixed(1)} GB`
   const ram_used_gb = `${(usedMemBytes / 1024 ** 3).toFixed(1)} GB`
 
-  const disk_usage = isDarwin ? getDiskStats() : undefined
+  const disk_usage = await getDiskStats()
   const local_ip = getLocalIp()
 
   return {

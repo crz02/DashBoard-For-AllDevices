@@ -4,14 +4,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Statuser — Device Battery Dashboard</title>
-  <meta name="description" content="Statuser: Clean and usable multi-device battery and telemetry dashboard for macOS, Windows, iOS, and Android.">
+  <meta name="description" content="Statuser: Premium multi-device battery and telemetry command center for macOS, Windows, iOS, and Android.">
+  <meta name="theme-color" content="#07090f">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <!-- Animated Background Mesh -->
+  <div class="bg-mesh" aria-hidden="true">
+    <div class="bg-mesh-accent"></div>
+  </div>
+
   <div class="layout">
     <!-- Top Navigation Bar -->
     <header class="topbar">
@@ -33,8 +39,21 @@
           <span class="toggle-text">Simulator</span>
         </label>
 
-        <button class="btn btn-default" id="refreshBtn" title="Refresh data">Refresh</button>
-        <button class="btn btn-primary" id="openAddModalBtn">+ Connect Device</button>
+        <button class="btn btn-default" id="refreshBtn" title="Refresh data">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+          Refresh
+        </button>
+        <button class="btn btn-primary" id="openAddModalBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Connect Device
+        </button>
         <div id="authNavArea" class="topbar-auth-wrapper">
           <a href="/signin" class="topbar-signin-btn" id="navSignInBtn">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -51,24 +70,28 @@
     <!-- Quick Stats Bar -->
     <section class="metrics-row" aria-label="System Metrics">
       <div class="metric-box">
+        <div class="metric-icon blue">📱</div>
         <span class="metric-title">Total Devices</span>
         <span class="metric-num" id="totalDevicesCount">0</span>
         <span class="metric-sub" id="onlineDevicesBadge">0 online</span>
       </div>
 
       <div class="metric-box">
+        <div class="metric-icon cyan">🔋</div>
         <span class="metric-title">Fleet Average</span>
         <span class="metric-num" id="avgBatteryLevel">--%</span>
         <span class="metric-sub" id="avgBatteryTrend">Steady</span>
       </div>
 
       <div class="metric-box">
+        <div class="metric-icon green">⚡</div>
         <span class="metric-title">Charging</span>
         <span class="metric-num" id="chargingCount">0</span>
         <span class="metric-sub" id="chargingPill">AC connected</span>
       </div>
 
       <div class="metric-box">
+        <div class="metric-icon red">🔻</div>
         <span class="metric-title">Low Battery (&lt;20%)</span>
         <span class="metric-num" id="lowBatteryCount">0</span>
         <span class="metric-sub" id="lowBatteryAlert">All ok</span>
@@ -77,13 +100,22 @@
 
     <!-- Filter & View Controls -->
     <div class="toolbar">
-      <div class="filter-group">
-        <button class="filter-btn active" data-filter="all">All Devices</button>
-        <button class="filter-btn" data-filter="macos">macOS</button>
-        <button class="filter-btn" data-filter="windows">Windows</button>
-        <button class="filter-btn" data-filter="ios">iOS</button>
-        <button class="filter-btn" data-filter="android">Android</button>
-        <button class="filter-btn" data-filter="linux">Linux</button>
+      <div class="toolbar-left">
+        <div class="search-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" class="search-input" id="deviceSearchInput" placeholder="Search devices..." autocomplete="off">
+        </div>
+        <div class="filter-group">
+          <button class="filter-btn active" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="macos">macOS</button>
+          <button class="filter-btn" data-filter="windows">Windows</button>
+          <button class="filter-btn" data-filter="ios">iOS</button>
+          <button class="filter-btn" data-filter="android">Android</button>
+          <button class="filter-btn" data-filter="linux">Linux</button>
+        </div>
       </div>
       <div class="sync-time" id="lastSyncTime">Last updated: Just now</div>
     </div>
@@ -97,8 +129,8 @@
     <section class="chart-panel">
       <div class="chart-header">
         <div>
-          <h2>Battery History</h2>
-          <p class="section-desc">Battery level trends over time</p>
+          <h2>📊 Battery History</h2>
+          <p class="section-desc">Battery level trends across your fleet</p>
         </div>
         <div class="chart-actions">
           <select id="chartDeviceSelect" class="form-select" aria-label="Select device">
@@ -118,7 +150,10 @@
 
     <!-- Footer -->
     <footer class="footer">
-      <span>Statuser — Device Telemetry Dashboard</span>
+      <div class="footer-left">
+        <span class="server-health-dot"></span>
+        <span>Statuser — Telemetry Command Center</span>
+      </div>
       <div style="display: flex; gap: 16px; align-items: center;">
         <a href="#setupModal" id="footerSetupLink">Setup Instructions</a>
       </div>
@@ -137,7 +172,7 @@
       </div>
 
       <div class="modal-nav">
-        <button class="modal-nav-btn active" data-tab="macos">MacBook</button>
+        <button class="modal-nav-btn active" data-tab="macos">macOS</button>
         <button class="modal-nav-btn" data-tab="windows">Windows</button>
         <button class="modal-nav-btn" data-tab="ios">iOS</button>
         <button class="modal-nav-btn" data-tab="android">Android</button>

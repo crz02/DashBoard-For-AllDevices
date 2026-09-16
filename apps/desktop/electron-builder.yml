@@ -19,6 +19,7 @@ mac:
   artifactName: "${productName}-${version}-${os}-${arch}.${ext}"
 
 win:
+  icon: resources/icon.ico
   target:
     - nsis
   artifactName: "${productName}-${version}-${os}.${ext}"

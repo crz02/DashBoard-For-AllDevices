@@ -16,6 +16,7 @@ export default function Home({ onToast }: HomeProps) {
     canManage: false
   })
   const [serverActionLoading, setServerActionLoading] = useState(false)
+  const [appInfo, setAppInfo] = useState<any>(null)
 
   const loadStats = async () => {
     try {
@@ -41,6 +42,7 @@ export default function Home({ onToast }: HomeProps) {
     loadStats()
     checkServer()
     window.api.getConfig().then(setConfig)
+    window.api.getAppInfo().then(setAppInfo)
 
     const intervalStats = setInterval(loadStats, 3500)
     const intervalServer = setInterval(checkServer, 5000)
@@ -107,16 +109,17 @@ export default function Home({ onToast }: HomeProps) {
 
   const handleCopySpecs = () => {
     if (!stats) return
+    const platformLabel = appInfo?.platform === 'darwin' ? 'macOS' : appInfo?.platform === 'win32' ? 'Windows' : 'Linux'
     const text = `--- Statuser System Report ---
 Device: ${stats.name}
 Model: ${stats.model}
-CPU: ${stats.cpu_model || stats.platform} (${stats.cpu_usage}% load)
+CPU: ${stats.cpu_model || platformLabel} (${stats.cpu_usage}% load)
 Memory: ${stats.ram_used_gb || ''} / ${stats.ram_total_gb || ''} (${stats.ram_usage}% used)
 Battery: ${stats.battery_level}% (${stats.power_source}${stats.time_remaining ? `, ${stats.time_remaining}` : ''})
 Battery Health: ${stats.battery_health} (${stats.cycle_count} cycles)
 Disk: ${stats.disk_usage?.used || ''} / ${stats.disk_usage?.total || ''} (${stats.disk_usage?.percent || 0}% used)
 Local IP: ${stats.local_ip || '127.0.0.1'}
-Platform: macOS ${stats.platform}
+Platform: ${platformLabel}
 Generated: ${new Date().toLocaleString()}
 ------------------------------`
     window.api.copyClipboard(text)
@@ -130,7 +133,7 @@ Generated: ${new Date().toLocaleString()}
           <circle cx="12" cy="12" r="10" strokeOpacity="0.2" />
           <path d="M12 2a10 10 0 0 1 10 10" />
         </svg>
-        <span style={{ color: 'var(--text-muted)', fontSize: 13, fontWeight: 600 }}>Connecting to native macOS sensors...</span>
+        <span style={{ color: 'var(--text-muted)', fontSize: 13, fontWeight: 600 }}>Connecting to system sensors...</span>
       </div>
     )
   }
@@ -155,9 +158,9 @@ Generated: ${new Date().toLocaleString()}
       {/* Top Header */}
       <div className="page-header">
         <div>
-          <h1 className="page-title">{stats?.name || 'Local Mac'}</h1>
+          <h1 className="page-title">{stats?.name || 'Local Device'}</h1>
           <p className="page-subtitle">
-            {stats?.model} • {stats?.cpu_model || 'Apple Silicon'}
+            {stats?.model} • {stats?.cpu_model || 'System CPU'}
           </p>
         </div>
 
@@ -346,7 +349,7 @@ Generated: ${new Date().toLocaleString()}
               Battery Health: {stats?.battery_health}
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 2 }}>
-              {stats?.cycle_count} cycles recorded • Apple design rated for 1,000 cycles
+              {stats?.cycle_count} cycles recorded • Design lifecycle tracking
             </div>
           </div>
         </div>
@@ -367,7 +370,7 @@ Generated: ${new Date().toLocaleString()}
         <div className="stat-item-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span className="stat-label">CPU Usage</span>
-            <span style={{ fontSize: 11.5, color: 'var(--text-dim)', fontWeight: 600 }}>{stats?.cpu_model || 'Apple M4'}</span>
+            <span style={{ fontSize: 11.5, color: 'var(--text-dim)', fontWeight: 600 }}>{stats?.cpu_model || 'CPU'}</span>
           </div>
           <div className="stat-value">{stats?.cpu_usage}%</div>
           <div className="stat-bar">
@@ -384,7 +387,7 @@ Generated: ${new Date().toLocaleString()}
         {/* RAM */}
         <div className="stat-item-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="stat-label">Unified Memory</span>
+            <span className="stat-label">Memory</span>
             <span style={{ fontSize: 11.5, color: 'var(--text-dim)', fontWeight: 600 }}>{stats?.ram_used_gb || ''} / {stats?.ram_total_gb || '16 GB'}</span>
           </div>
           <div className="stat-value">{stats?.ram_usage}%</div>
@@ -402,7 +405,7 @@ Generated: ${new Date().toLocaleString()}
         {/* Disk */}
         <div className="stat-item-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="stat-label">Macintosh HD</span>
+            <span className="stat-label">System Drive</span>
             <span style={{ fontSize: 11.5, color: 'var(--text-dim)', fontWeight: 600 }}>{stats?.disk_usage?.free || '60 GB'} free</span>
           </div>
           <div className="stat-value">{stats?.disk_usage?.percent || 18}%</div>

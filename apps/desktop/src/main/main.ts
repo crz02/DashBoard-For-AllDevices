@@ -120,26 +120,39 @@ function createWindow() {
 
   const iconPath = join(__dirname, '../../resources/icon.png')
   const isMac = process.platform === 'darwin'
+  const isWin = process.platform === 'win32'
 
-  mainWindow = new BrowserWindow({
+  // Platform-specific window options
+  const windowOptions: Electron.BrowserWindowConstructorOptions = {
     width: 900,
     height: 670,
     minWidth: 520,
     minHeight: 540,
     show: false,
-    transparent: isMac,
-    vibrancy: isMac ? 'under-window' : undefined,
-    visualEffectState: 'active',
-    backgroundColor: isMac ? '#00000000' : '#090d16',
-    titleBarStyle: isMac ? 'hiddenInset' : 'default',
-    trafficLightPosition: { x: 18, y: 18 },
     icon: iconPath,
     webPreferences: {
       preload: join(__dirname, '../preload/preload.js'),
       nodeIntegration: false,
       contextIsolation: true
     }
-  })
+  }
+
+  if (isMac) {
+    // macOS: transparent + vibrancy for Liquid Glass effect
+    windowOptions.transparent = true
+    windowOptions.vibrancy = 'under-window'
+    windowOptions.visualEffectState = 'active'
+    windowOptions.backgroundColor = '#00000000'
+    windowOptions.titleBarStyle = 'hiddenInset'
+    windowOptions.trafficLightPosition = { x: 18, y: 18 }
+  } else {
+    // Windows / Linux: solid background, standard title bar
+    windowOptions.backgroundColor = '#090d16'
+    windowOptions.titleBarStyle = 'default'
+    windowOptions.autoHideMenuBar = isWin
+  }
+
+  mainWindow = new BrowserWindow(windowOptions)
 
   mainWindow.on('ready-to-show', () => {
     mainWindow?.show()
@@ -156,6 +169,16 @@ function createWindow() {
     mainWindow = null
   })
 
+  // Send platform info to renderer once DOM is ready
+  mainWindow.webContents.on('did-finish-load', () => {
+    mainWindow?.webContents.send('platform-info', {
+      platform: process.platform,
+      isMac,
+      isWin,
+      isLinux: process.platform === 'linux'
+    })
+  })
+
   if (process.env.NODE_ENV === 'development') {
     mainWindow.loadURL('http://localhost:5173')
   } else {
@@ -169,12 +192,32 @@ function findServerScriptPath(): string | null {
     join(__dirname, '../../../../server/app.py'),
     join(__dirname, '../../../server/app.py'),
     join(process.cwd(), 'server/app.py'),
-    '/Users/irfan/Documents/GitHub/DashBoard/server/app.py'
+    // Platform-aware home directory fallback
+    join(os.homedir(), 'Documents', 'GitHub', 'DashBoard', 'server', 'app.py')
   ]
   for (const p of possiblePaths) {
     if (fs.existsSync(p)) return p
   }
   return null
+}
+
+/** Get the python executable name for the current platform */
+function getPythonCommand(): string {
+  if (process.platform === 'win32') {
+    // Windows: try 'python' first (py launcher also works)
+    try {
+      require('child_process').execSync('python --version', { stdio: 'ignore', timeout: 2000 })
+      return 'python'
+    } catch {
+      try {
+        require('child_process').execSync('python3 --version', { stdio: 'ignore', timeout: 2000 })
+        return 'python3'
+      } catch {
+        return 'python'
+      }
+    }
+  }
+  return 'python3'
 }
 
 async function checkIsServerRunning(): Promise<boolean> {
@@ -215,9 +258,12 @@ async function startServer(): Promise<{ success: boolean; message: string }> {
   }
 
   try {
-    serverProcess = spawn('python3', [scriptPath], {
+    const pythonCmd = getPythonCommand()
+    serverProcess = spawn(pythonCmd, [scriptPath], {
       detached: false,
-      stdio: 'ignore'
+      stdio: 'ignore',
+      // On Windows, use shell to resolve python from PATH
+      shell: process.platform === 'win32'
     })
 
     // Poll for port 8080 to become active (up to 3 seconds)
@@ -236,11 +282,24 @@ async function startServer(): Promise<{ success: boolean; message: string }> {
 
 async function stopServer(): Promise<{ success: boolean; message: string }> {
   if (serverProcess) {
-    serverProcess.kill('SIGTERM')
+    try {
+      if (process.platform === 'win32') {
+        // Windows: use taskkill to terminate the process tree
+        require('child_process').execSync(`taskkill /PID ${serverProcess.pid} /T /F`, { stdio: 'ignore' })
+      } else {
+        serverProcess.kill('SIGTERM')
+      }
+    } catch {
+      // ignore kill errors
+    }
     serverProcess = null
   }
   try {
-    require('child_process').execSync('pkill -f "python3 server/app.py" || true')
+    if (process.platform === 'win32') {
+      require('child_process').execSync('taskkill /F /IM python.exe /FI "WINDOWTITLE eq server*" 2>nul', { stdio: 'ignore' })
+    } else {
+      require('child_process').execSync('pkill -f "python3 server/app.py" || true', { stdio: 'ignore' })
+    }
   } catch {
     // ignore
   }
@@ -328,13 +387,20 @@ async function updateTrayMenu() {
 }
 
 function setupTray() {
-  const trayIconPath = join(__dirname, '../../resources/trayTemplate.png')
+  const isMac = process.platform === 'darwin'
+  const trayIconPath = isMac
+    ? join(__dirname, '../../resources/trayTemplate.png')
+    : join(__dirname, '../../resources/icon.png')
   let icon = nativeImage.createFromPath(trayIconPath)
 
   if (icon.isEmpty()) {
     icon = nativeImage.createEmpty()
-  } else {
+  } else if (isMac) {
+    // Template images are macOS-only (auto-adapt to dark/light menu bar)
     icon.setTemplateImage(true)
+  } else {
+    // Windows/Linux: resize icon to appropriate tray size (16x16 or 32x32)
+    icon = icon.resize({ width: 16, height: 16 })
   }
 
   tray = new Tray(icon)
@@ -342,7 +408,12 @@ function setupTray() {
   updateTrayMenu()
 
   tray.on('click', () => {
-    createWindow()
+    // On Windows, single click should toggle window visibility
+    if (mainWindow && mainWindow.isVisible()) {
+      mainWindow.hide()
+    } else {
+      createWindow()
+    }
   })
 
   tray.on('double-click', () => {
@@ -353,9 +424,10 @@ function setupTray() {
 function checkLowBatteryAlert(stats: TelemetryPayload) {
   if (!stats.is_charging && stats.battery_level <= 20) {
     if (!hasNotifiedLowBattery && Notification.isSupported()) {
+      const platformName = process.platform === 'darwin' ? 'Mac' : process.platform === 'win32' ? 'PC' : 'device'
       new Notification({
         title: 'Statuser — Low Battery',
-        body: `Your battery is at ${stats.battery_level}%. Connect your Mac to power.`,
+        body: `Your battery is at ${stats.battery_level}%. Connect your ${platformName} to power.`,
         icon: join(__dirname, '../../resources/icon.png')
       }).show()
       hasNotifiedLowBattery = true

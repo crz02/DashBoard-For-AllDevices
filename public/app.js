@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Clean & Usable Device Dashboard — Client Logic
+   Statuser — Premium Dashboard Client Logic
    ========================================================================== */
 
 function getActiveUser() {
@@ -16,11 +16,15 @@ function getActiveUser() {
 let activeUser = getActiveUser();
 let devices = [];
 let activeFilter = 'all';
+let searchQuery = '';
 let selectedHistoryDevice = 'all';
 let selectedHistoryHours = 24;
 let batteryChart = null;
 let eventSource = null;
 let isSimulatorActive = false;
+
+// Animated counter cache
+const counterCache = {};
 
 function getUserHeaders() {
   if (activeUser && activeUser.id) {
@@ -32,14 +36,14 @@ function getUserHeaders() {
 async function switchActiveUser(targetUserId) {
   try {
     const res = await fetch('/api/users');
-    if (!res.ok) { showToast('Failed to fetch users'); return; }
+    if (!res.ok) { showToast('Failed to fetch users', 'error'); return; }
     const data = await res.json();
     if (data.status === 'success' && data.users) {
       const found = data.users.find(u => u.id === targetUserId);
       if (found) {
         activeUser = found;
         localStorage.setItem('omniverse_auth_user', JSON.stringify(found));
-        showToast(`Switched account to ${found.name}`);
+        showToast(`Switched account to ${found.name}`, 'success');
         initAuthStatus();
         initRealtimeEvents();
         fetchInitialData();
@@ -72,11 +76,8 @@ async function populateDynamicSetupUrls() {
       const data = await res.json();
       if (data.status === 'success' && data.url) {
         origin = data.url;
-        const syncEl = document.getElementById('connectionStatus');
-        if (syncEl) {
-          const text = document.getElementById('connectionText');
-          if (text) text.textContent = 'Live Cloud HTTPS';
-        }
+        const text = document.getElementById('connectionText');
+        if (text) text.textContent = 'Live Cloud HTTPS';
       }
     }
   } catch (_) {}
@@ -121,7 +122,10 @@ async function populateDynamicSetupUrls() {
   }
 }
 
-// Server-Sent Events (SSE) for Real-Time Updates (Scoped to current user)
+// ==========================================================================
+// Server-Sent Events (SSE) — Scoped to current user
+// ==========================================================================
+
 function initRealtimeEvents() {
   const statusBadge = document.getElementById('connectionStatus');
   const statusText = document.getElementById('connectionText');
@@ -136,8 +140,14 @@ function initRealtimeEvents() {
   eventSource = new EventSource(sseUrl);
 
   eventSource.onopen = () => {
-    statusText.textContent = 'Connected';
-    statusBadge.querySelector('.dot').style.backgroundColor = 'var(--color-green)';
+    if (statusText) statusText.textContent = 'Connected';
+    if (statusBadge) {
+      const dot = statusBadge.querySelector('.dot');
+      if (dot) {
+        dot.style.backgroundColor = 'var(--accent-green)';
+        dot.style.boxShadow = '0 0 8px rgba(34, 197, 94, 0.5)';
+      }
+    }
   };
 
   eventSource.addEventListener('devices_updated', (e) => {
@@ -152,17 +162,24 @@ function initRealtimeEvents() {
   eventSource.addEventListener('device_ping', (e) => {
     try {
       const ping = JSON.parse(e.data);
-      showToast(`Update from ${ping.device_id}: ${ping.battery}%`);
+      showToast(`Update from ${ping.device_id}: ${ping.battery}%`, 'info');
     } catch (_) {}
   });
 
   eventSource.onerror = () => {
-    statusText.textContent = 'Reconnecting...';
-    statusBadge.querySelector('.dot').style.backgroundColor = 'var(--color-red)';
+    if (statusText) statusText.textContent = 'Reconnecting...';
+    if (statusBadge) {
+      const dot = statusBadge.querySelector('.dot');
+      if (dot) {
+        dot.style.backgroundColor = 'var(--accent-red)';
+        dot.style.boxShadow = '0 0 8px rgba(239, 68, 68, 0.5)';
+        dot.style.animation = 'none';
+      }
+    }
   };
 }
 
-// Fetch Initial Devices and Simulator State for Current User
+// Fetch Initial Data
 async function fetchInitialData() {
   try {
     const res = await fetch('/api/devices', { headers: getUserHeaders() });
@@ -188,7 +205,10 @@ async function fetchInitialData() {
   }
 }
 
-// Setup Event Listeners
+// ==========================================================================
+// Event Listeners
+// ==========================================================================
+
 function setupUIEventListeners() {
   // Filter buttons
   document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -201,11 +221,20 @@ function setupUIEventListeners() {
     });
   });
 
+  // Search input
+  const searchInput = document.getElementById('deviceSearchInput');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value.trim().toLowerCase();
+      renderDeviceGrid();
+    });
+  }
+
   // Refresh
   document.getElementById('refreshBtn').addEventListener('click', () => {
     fetchInitialData();
     fetchChartHistory();
-    showToast('Data refreshed');
+    showToast('Data refreshed', 'success');
   });
 
   // Simulator Checkbox
@@ -219,7 +248,7 @@ function setupUIEventListeners() {
         if (data.status === 'success') {
           isSimulatorActive = data.running;
           simCheckbox.checked = isSimulatorActive;
-          showToast(isSimulatorActive ? 'Simulator running' : 'Simulator stopped');
+          showToast(isSimulatorActive ? 'Simulator running' : 'Simulator stopped', 'info');
         }
       } catch (err) {
         simCheckbox.checked = !simCheckbox.checked;
@@ -253,7 +282,12 @@ function setupUIEventListeners() {
     if (e.target === modal) close();
   });
 
-  // Modal navigation tabs
+  // Keyboard shortcut to close modal
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.classList.contains('open')) close();
+  });
+
+  // Modal tabs
   document.querySelectorAll('.modal-nav-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       document.querySelectorAll('.modal-nav-btn').forEach(b => b.classList.remove('active'));
@@ -275,8 +309,12 @@ function setupUIEventListeners() {
       if (el) {
         navigator.clipboard.writeText(el.textContent.trim()).then(() => {
           const orig = e.currentTarget.textContent;
-          e.currentTarget.textContent = 'Copied!';
-          setTimeout(() => { e.currentTarget.textContent = orig; }, 1500);
+          e.currentTarget.textContent = '✓ Copied!';
+          e.currentTarget.style.color = 'var(--accent-green)';
+          setTimeout(() => {
+            e.currentTarget.textContent = orig;
+            e.currentTarget.style.color = '';
+          }, 1500);
         });
       }
     });
@@ -300,7 +338,10 @@ function setupUIEventListeners() {
   });
 }
 
+// ==========================================================================
 // Render All Components
+// ==========================================================================
+
 function renderAll() {
   updateSummaryStats();
   renderDeviceGrid();
@@ -316,104 +357,231 @@ function updateLastSyncTime() {
   }
 }
 
-// Summary Metrics
+// ==========================================================================
+// Animated Counter
+// ==========================================================================
+
+function animateCounter(elementId, targetValue, suffix = '') {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+
+  const currentValue = counterCache[elementId] || 0;
+  const target = typeof targetValue === 'number' ? targetValue : parseInt(targetValue, 10);
+
+  if (isNaN(target)) {
+    el.textContent = targetValue + suffix;
+    return;
+  }
+
+  if (currentValue === target) {
+    el.textContent = target + suffix;
+    return;
+  }
+
+  counterCache[elementId] = target;
+
+  const duration = 400;
+  const startTime = performance.now();
+  const startVal = currentValue;
+
+  function step(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    // Ease-out cubic
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const current = Math.round(startVal + (target - startVal) * eased);
+    el.textContent = current + suffix;
+
+    if (progress < 1) {
+      requestAnimationFrame(step);
+    }
+  }
+
+  requestAnimationFrame(step);
+}
+
+// ==========================================================================
+// Summary Stats with Animated Counters
+// ==========================================================================
+
 function updateSummaryStats() {
-  const totalCountEl = document.getElementById('totalDevicesCount');
   const onlineBadgeEl = document.getElementById('onlineDevicesBadge');
-  const avgBatteryEl = document.getElementById('avgBatteryLevel');
   const avgTrendEl = document.getElementById('avgBatteryTrend');
-  const chargingCountEl = document.getElementById('chargingCount');
-  const lowBatteryCountEl = document.getElementById('lowBatteryCount');
   const lowBatteryAlertEl = document.getElementById('lowBatteryAlert');
 
   const total = devices.length;
-  totalCountEl.textContent = total;
+  animateCounter('totalDevicesCount', total);
 
   const onlineCount = devices.filter(d => d.is_online).length;
-  onlineBadgeEl.textContent = `${onlineCount} online`;
+  if (onlineBadgeEl) onlineBadgeEl.textContent = `${onlineCount} online`;
 
   const chargingCount = devices.filter(d => d.is_charging).length;
-  chargingCountEl.textContent = chargingCount;
+  animateCounter('chargingCount', chargingCount);
 
   const lowCount = devices.filter(d => d.battery_level <= 20).length;
-  lowBatteryCountEl.textContent = lowCount;
-  lowBatteryAlertEl.textContent = lowCount > 0 ? `${lowCount} need charge` : 'All normal';
+  animateCounter('lowBatteryCount', lowCount);
+  if (lowBatteryAlertEl) {
+    lowBatteryAlertEl.textContent = lowCount > 0 ? `${lowCount} need charge` : 'All normal';
+    lowBatteryAlertEl.style.color = lowCount > 0 ? 'var(--accent-red)' : '';
+  }
 
   if (total > 0) {
     const sum = devices.reduce((acc, d) => acc + (d.battery_level || 0), 0);
     const avg = Math.round(sum / total);
-    avgBatteryEl.textContent = `${avg}%`;
-    avgTrendEl.textContent = avg >= 70 ? 'High' : avg >= 35 ? 'Medium' : 'Low';
+    animateCounter('avgBatteryLevel', avg, '%');
+    if (avgTrendEl) {
+      avgTrendEl.textContent = avg >= 70 ? '● High' : avg >= 35 ? '● Medium' : '● Low';
+      avgTrendEl.style.color = avg >= 70 ? 'var(--accent-green)' : avg >= 35 ? 'var(--accent-yellow)' : 'var(--accent-red)';
+    }
   } else {
-    avgBatteryEl.textContent = '--%';
+    const el = document.getElementById('avgBatteryLevel');
+    if (el) el.textContent = '--%';
   }
 }
 
-// Render Device Grid
+// ==========================================================================
+// Device Grid Render
+// ==========================================================================
+
 function renderDeviceGrid() {
   const grid = document.getElementById('devicesGrid');
   grid.innerHTML = '';
 
   const filtered = devices.filter(d => {
-    if (activeFilter === 'all') return true;
-    return (d.platform || '').toLowerCase() === activeFilter.toLowerCase();
+    const matchesFilter = activeFilter === 'all' || (d.platform || '').toLowerCase() === activeFilter.toLowerCase();
+    const matchesSearch = !searchQuery || 
+      (d.name || '').toLowerCase().includes(searchQuery) ||
+      (d.id || '').toLowerCase().includes(searchQuery) ||
+      (d.platform || '').toLowerCase().includes(searchQuery) ||
+      (d.model || '').toLowerCase().includes(searchQuery);
+    return matchesFilter && matchesSearch;
   });
 
   if (filtered.length === 0) {
     grid.innerHTML = `
-      <div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: var(--text-muted); border: 1px dashed var(--border); border-radius: var(--radius);">
-        No devices in this category. Click "+ Connect Device" to add one.
+      <div class="empty-state">
+        <div class="empty-state-icon">📡</div>
+        <div class="empty-state-title">${searchQuery ? 'No matching devices' : 'No devices connected'}</div>
+        <div class="empty-state-desc">${searchQuery ? 'Try adjusting your search query or filter' : 'Click "+ Connect Device" to add your first device and start monitoring.'}</div>
       </div>
     `;
     return;
   }
 
-  filtered.forEach(device => {
-    const item = createDeviceElement(device);
+  filtered.forEach((device, index) => {
+    const item = createDeviceElement(device, index);
     grid.appendChild(item);
   });
 }
 
+// ==========================================================================
+// SVG Battery Ring Generator
+// ==========================================================================
+
+function createBatteryRingSVG(level, isCharging) {
+  const radius = 29;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (level / 100) * circumference;
+
+  let strokeColor;
+  if (isCharging) {
+    strokeColor = '#818cf8';
+  } else if (level <= 20) {
+    strokeColor = '#f87171';
+  } else if (level <= 50) {
+    strokeColor = '#facc15';
+  } else {
+    strokeColor = '#4ade80';
+  }
+
+  return `
+    <svg class="battery-ring-svg" viewBox="0 0 72 72">
+      <circle class="battery-ring-bg" cx="36" cy="36" r="${radius}"/>
+      <circle class="battery-ring-fill" cx="36" cy="36" r="${radius}"
+        stroke="${strokeColor}"
+        stroke-dasharray="${circumference}"
+        stroke-dashoffset="${offset}"
+        style="color: ${strokeColor}"
+      />
+    </svg>
+  `;
+}
+
+// ==========================================================================
+// Time Ago Helper
+// ==========================================================================
+
+function timeAgo(seconds) {
+  if (seconds < 60) return 'Just now';
+  if (seconds < 3600) {
+    const m = Math.floor(seconds / 60);
+    return `${m}m ago`;
+  }
+  if (seconds < 86400) {
+    const h = Math.floor(seconds / 3600);
+    return `${h}h ago`;
+  }
+  const d = Math.floor(seconds / 86400);
+  return `${d}d ago`;
+}
+
+// ==========================================================================
+// Platform Tag with Color Class
+// ==========================================================================
+
+function getPlatformTag(platform) {
+  const p = (platform || 'device').toLowerCase();
+  const icons = {
+    macos: '🍎',
+    windows: '🪟',
+    ios: '📱',
+    android: '🤖',
+    linux: '🐧'
+  };
+  const icon = icons[p] || '💻';
+  return `<span class="platform-tag ${p}">${icon} ${p}</span>`;
+}
+
+// ==========================================================================
 // Create Device Card Element
-function createDeviceElement(device) {
+// ==========================================================================
+
+function createDeviceElement(device, index) {
   const card = document.createElement('div');
   card.className = 'device-item';
+  card.style.animationDelay = `${0.05 + index * 0.05}s`;
 
   const level = Math.max(0, Math.min(100, device.battery_level || 0));
   const isCharging = Boolean(device.is_charging);
   const platform = (device.platform || 'device').toLowerCase();
 
-  // Progress color class & badge
-  let fillClass = 'fill-high';
+  // Badge
   let badgeClass = 'badge-normal';
   let statusText = 'On Battery';
 
   if (isCharging) {
-    fillClass = 'fill-charging';
     badgeClass = 'badge-charging';
     statusText = '⚡ Charging';
   } else if (level <= 20) {
-    fillClass = 'fill-low';
     badgeClass = 'badge-low';
-    statusText = 'Low Battery';
+    statusText = '⚠ Low Battery';
   } else if (level <= 50) {
-    fillClass = 'fill-med';
     badgeClass = 'badge-medium';
     statusText = 'Moderate';
   }
 
-  // Time ago
   const secAgo = device.seconds_since_update || 0;
-  let timeStr = 'Just now';
-  if (secAgo > 3600) {
-    timeStr = `${Math.floor(secAgo / 3600)}h ago`;
-  } else if (secAgo > 60) {
-    timeStr = `${Math.floor(secAgo / 60)}m ago`;
-  }
-
+  const timeStr = timeAgo(secAgo);
   const isOnline = device.is_online;
-  const onlineStatusClass = isOnline ? '' : 'offline';
-  const onlineLabel = isOnline ? 'Online' : 'Offline';
+
+  // Temperature display
+  const temp = device.temperature;
+  let tempDisplay = '--';
+  let tempColor = '';
+  if (temp && temp > 0) {
+    tempDisplay = `${temp.toFixed(1)}°C`;
+    tempColor = temp > 45 ? 'color: var(--accent-red)' : temp > 38 ? 'color: var(--accent-yellow)' : '';
+  }
 
   card.innerHTML = `
     <div class="device-item-head">
@@ -421,31 +589,37 @@ function createDeviceElement(device) {
         <span class="device-item-name">${escapeHtml(device.name || device.id)}</span>
         <span class="device-item-meta">${escapeHtml(device.model || platform)}</span>
       </div>
-      <span class="platform-tag">${platform}</span>
+      ${getPlatformTag(platform)}
     </div>
 
-    <div class="battery-block">
-      <div class="battery-header">
-        <span class="battery-number">${level}%</span>
-        <span class="battery-badge ${badgeClass}">${statusText}</span>
+    <div class="battery-ring-section">
+      <div class="battery-ring-container">
+        ${createBatteryRingSVG(level, isCharging)}
+        <div class="battery-ring-text">
+          <span class="battery-ring-percent">${level}%</span>
+          <span class="battery-ring-label">${isCharging ? 'CHG' : 'BAT'}</span>
+        </div>
       </div>
-      <div class="progress-track">
-        <div class="progress-fill ${fillClass}" style="width: ${level}%;"></div>
+      <div class="battery-info">
+        <div class="battery-status-row">
+          <span class="battery-badge ${badgeClass}">${statusText}</span>
+        </div>
+        <span class="battery-power-source">${escapeHtml(device.power_source || 'Battery')}</span>
       </div>
     </div>
 
     <div class="details-table">
       <div class="details-row">
-        <span class="details-key">Power Source</span>
-        <span class="details-val">${escapeHtml(device.power_source || 'Battery')}</span>
-      </div>
-      <div class="details-row">
-        <span class="details-key">Battery Health</span>
-        <span class="details-val">${escapeHtml(device.battery_health || 'Good')} ${device.cycle_count ? `(${device.cycle_count}c)` : ''}</span>
+        <span class="details-key">Health</span>
+        <span class="details-val">${escapeHtml(device.battery_health || 'Good')} ${device.cycle_count ? `(${device.cycle_count} cycles)` : ''}</span>
       </div>
       <div class="details-row">
         <span class="details-key">CPU / RAM</span>
         <span class="details-val">${device.cpu_usage ? device.cpu_usage.toFixed(1) + '%' : '0%'} / ${device.ram_usage ? device.ram_usage.toFixed(0) + '%' : '0%'}</span>
+      </div>
+      <div class="details-row">
+        <span class="details-key">Temperature</span>
+        <span class="details-val" style="${tempColor}">${tempDisplay}</span>
       </div>
       <div class="details-row">
         <span class="details-key">IP Address</span>
@@ -454,9 +628,9 @@ function createDeviceElement(device) {
     </div>
 
     <div class="device-item-foot">
-      <div class="status-indicator ${onlineStatusClass}">
+      <div class="status-indicator ${isOnline ? '' : 'offline'}">
         <span class="mini-dot"></span>
-        <span>${onlineLabel} &bull; ${timeStr}</span>
+        <span>${isOnline ? 'Online' : 'Offline'} · ${timeStr}</span>
       </div>
       <button class="btn-remove" title="Remove device" onclick="handleDeleteDevice('${escapeHtml(device.id)}')">Remove</button>
     </div>
@@ -476,20 +650,23 @@ window.handleDeleteDevice = async function(deviceId) {
       headers: { 'Content-Type': 'application/json', ...getUserHeaders() },
       body: JSON.stringify({ device_id: deviceId, ...(userId ? { user_id: userId } : {}) })
     });
-    if (!res.ok) { showToast('Failed to remove device'); return; }
+    if (!res.ok) { showToast('Failed to remove device', 'error'); return; }
     const data = await res.json();
     if (data.status === 'success') {
       devices = devices.filter(d => d.id !== deviceId);
       renderAll();
       fetchChartHistory();
-      showToast(`Removed ${deviceId}`);
+      showToast(`Removed ${deviceId}`, 'success');
     }
   } catch (err) {
-    showToast('Failed to remove device');
+    showToast('Failed to remove device', 'error');
   }
 };
 
-// Update Chart Dropdown
+// ==========================================================================
+// Chart
+// ==========================================================================
+
 function updateChartDropdown() {
   const select = document.getElementById('chartDeviceSelect');
   const current = select.value;
@@ -504,7 +681,6 @@ function updateChartDropdown() {
   });
 }
 
-// Initialize Chart
 function initHistoryChart() {
   const ctx = document.getElementById('batteryHistoryChart').getContext('2d');
 
@@ -517,38 +693,47 @@ function initHistoryChart() {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      animation: false,
+      animation: { duration: 600, easing: 'easeOutCubic' },
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
       plugins: {
         legend: {
           labels: {
-            color: '#8b949e',
-            font: { family: "'Inter', sans-serif", size: 12 },
-            boxWidth: 12
+            color: '#94a3b8',
+            font: { family: "'Inter', sans-serif", size: 12, weight: '500' },
+            boxWidth: 12,
+            padding: 16,
+            usePointStyle: true,
+            pointStyle: 'circle'
           }
         },
         tooltip: {
-          backgroundColor: '#161b22',
-          titleColor: '#f0f6fc',
-          bodyColor: '#8b949e',
-          borderColor: '#30363d',
+          backgroundColor: 'rgba(15, 23, 42, 0.9)',
+          titleColor: '#f1f5f9',
+          bodyColor: '#94a3b8',
+          borderColor: 'rgba(148, 163, 184, 0.15)',
           borderWidth: 1,
-          padding: 8,
+          padding: 12,
+          cornerRadius: 8,
+          titleFont: { weight: '600' },
           callbacks: {
-            label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y}%`
+            label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.y}%`
           }
         }
       },
       scales: {
         x: {
-          grid: { color: '#21262d' },
-          ticks: { color: '#6e7681', font: { family: "'JetBrains Mono', monospace", size: 10 } }
+          grid: { color: 'rgba(148, 163, 184, 0.06)', drawBorder: false },
+          ticks: { color: '#64748b', font: { family: "'JetBrains Mono', monospace", size: 10 }, maxRotation: 0 }
         },
         y: {
           min: 0,
           max: 100,
-          grid: { color: '#21262d' },
+          grid: { color: 'rgba(148, 163, 184, 0.06)', drawBorder: false },
           ticks: {
-            color: '#6e7681',
+            color: '#64748b',
             font: { family: "'JetBrains Mono', monospace", size: 10 },
             stepSize: 25,
             callback: (v) => `${v}%`
@@ -561,7 +746,6 @@ function initHistoryChart() {
   fetchChartHistory();
 }
 
-// Fetch Chart Data
 async function fetchChartHistory() {
   if (!batteryChart) return;
 
@@ -582,7 +766,6 @@ async function fetchChartHistory() {
   }
 }
 
-// Render Data on Chart
 function renderChartData(logs) {
   if (!logs || logs.length === 0) {
     batteryChart.data.labels = [];
@@ -591,15 +774,20 @@ function renderChartData(logs) {
     return;
   }
 
-  // Dynamic color palette — generates unique colors for any device ID
+  // Premium color palette with gradient fills
   const colorPool = [
-    '#f0f6fc', '#58a6ff', '#a371f7', '#3fb950', '#f97583',
-    '#d2a8ff', '#79c0ff', '#56d364', '#ffa657', '#ff7b72',
-    '#7ee787', '#d29922', '#bc8cff', '#39d353', '#e3b341'
+    { line: '#818cf8', fill: 'rgba(129, 140, 248, 0.08)' },
+    { line: '#06b6d4', fill: 'rgba(6, 182, 212, 0.08)' },
+    { line: '#a855f7', fill: 'rgba(168, 85, 247, 0.08)' },
+    { line: '#4ade80', fill: 'rgba(74, 222, 128, 0.08)' },
+    { line: '#f97316', fill: 'rgba(249, 115, 22, 0.08)' },
+    { line: '#f87171', fill: 'rgba(248, 113, 113, 0.08)' },
+    { line: '#facc15', fill: 'rgba(250, 204, 21, 0.08)' },
+    { line: '#2dd4bf', fill: 'rgba(45, 212, 191, 0.08)' },
   ];
   const deviceColorMap = {};
   let colorIndex = 0;
-  function getDeviceColor(devId) {
+  function getDeviceColors(devId) {
     if (!deviceColorMap[devId]) {
       deviceColorMap[devId] = colorPool[colorIndex % colorPool.length];
       colorIndex++;
@@ -615,17 +803,20 @@ function renderChartData(logs) {
     const values = logs.map(l => l.percentage);
     const dev = devices.find(d => d.id === selectedHistoryDevice);
     const devName = dev ? dev.name : selectedHistoryDevice;
-    const color = getDeviceColor(selectedHistoryDevice);
+    const colors = getDeviceColors(selectedHistoryDevice);
 
     batteryChart.data.labels = labels;
     batteryChart.data.datasets = [{
       label: `${devName} Battery %`,
       data: values,
-      borderColor: color,
+      borderColor: colors.line,
+      backgroundColor: colors.fill,
       borderWidth: 2,
-      tension: 0.1,
-      fill: false,
-      pointRadius: 2
+      tension: 0.3,
+      fill: true,
+      pointRadius: 1,
+      pointHoverRadius: 5,
+      pointHoverBackgroundColor: colors.line
     }];
   } else {
     const deviceGroups = {};
@@ -657,16 +848,19 @@ function renderChartData(logs) {
 
       const dev = devices.find(d => d.id === devId);
       const devName = dev ? dev.name : devId;
-      const color = getDeviceColor(devId);
+      const colors = getDeviceColors(devId);
 
       return {
         label: devName,
         data: dataPoints,
-        borderColor: color,
+        borderColor: colors.line,
+        backgroundColor: colors.fill,
         borderWidth: 1.8,
-        tension: 0.1,
-        fill: false,
-        pointRadius: 2
+        tension: 0.3,
+        fill: true,
+        pointRadius: 1,
+        pointHoverRadius: 4,
+        pointHoverBackgroundColor: colors.line
       };
     });
 
@@ -677,20 +871,36 @@ function renderChartData(logs) {
   batteryChart.update();
 }
 
-// Toast
-function showToast(msg) {
+// ==========================================================================
+// Toast — Enhanced
+// ==========================================================================
+
+function showToast(msg, type = 'info') {
   const container = document.getElementById('toastContainer');
   if (!container) return;
 
   const toast = document.createElement('div');
-  toast.className = 'toast-item';
-  toast.textContent = msg;
+  toast.className = `toast toast-${type}`;
+
+  const icons = {
+    success: '✓',
+    error: '✕',
+    info: 'ℹ'
+  };
+
+  toast.innerHTML = `<span style="font-weight: 700; font-size: 0.9rem">${icons[type] || 'ℹ'}</span> ${escapeHtml(msg)}`;
 
   container.appendChild(toast);
-  setTimeout(() => toast.remove(), 2500);
+  setTimeout(() => {
+    toast.classList.add('fade-out');
+    setTimeout(() => toast.remove(), 300);
+  }, 2500);
 }
 
-// Escape HTML
+// ==========================================================================
+// Utilities
+// ==========================================================================
+
 function escapeHtml(str) {
   if (!str) return '';
   return String(str)
@@ -701,7 +911,10 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
-// Clerk & Multi-User Auth Status Handler
+// ==========================================================================
+// Auth — Clerk & Multi-User
+// ==========================================================================
+
 async function initAuthStatus() {
   const authArea = document.getElementById('authNavArea');
   if (!authArea) return;
@@ -747,29 +960,28 @@ async function initAuthStatus() {
 
         if (!frontendApi) {
           console.warn('Could not derive Clerk Frontend API from key.');
-          // Skip Clerk loading — show sign-in link instead
         } else {
-
-        clerkScript = document.createElement('script');
-        clerkScript.id = 'clerk-js-sdk';
-        clerkScript.crossOrigin = 'anonymous';
-        clerkScript.setAttribute('data-clerk-publishable-key', clerkKey);
-        clerkScript.src = `https://${frontendApi}/npm/@clerk/clerk-js@5/dist/clerk.browser.js`;
-        document.head.appendChild(clerkScript);
-        await new Promise((resolve, reject) => {
-          clerkScript.onload = resolve;
-          clerkScript.onerror = reject;
-        });
+          clerkScript = document.createElement('script');
+          clerkScript.id = 'clerk-js-sdk';
+          clerkScript.crossOrigin = 'anonymous';
+          clerkScript.setAttribute('data-clerk-publishable-key', clerkKey);
+          clerkScript.src = `https://${frontendApi}/npm/@clerk/clerk-js@5/dist/clerk.browser.js`;
+          document.head.appendChild(clerkScript);
+          await new Promise((resolve, reject) => {
+            clerkScript.onload = resolve;
+            clerkScript.onerror = reject;
+          });
+        }
       }
 
       if (window.Clerk) {
         await window.Clerk.load({
           appearance: {
             variables: {
-              colorPrimary: '#1f6feb',
-              colorBackground: '#161b22',
-              colorText: '#f0f6fc',
-              colorNeutral: '#f0f6fc',
+              colorPrimary: '#6366f1',
+              colorBackground: '#0f172a',
+              colorText: '#f1f5f9',
+              colorNeutral: '#f1f5f9',
             }
           }
         });
@@ -832,11 +1044,8 @@ async function initAuthStatus() {
           });
           return;
         } else if (activeUser?.provider === 'clerk') {
-          // Clerk session has ended; clear stale local session
           localStorage.removeItem('omniverse_auth_user');
           activeUser = null;
-        }
-      }
         }
       }
     } catch (err) {
@@ -915,10 +1124,9 @@ window.handleSignOut = async function() {
   }
   localStorage.removeItem('omniverse_auth_user');
   activeUser = null;
-  showToast('Signed out successfully');
+  showToast('Signed out successfully', 'success');
   initAuthStatus();
   initRealtimeEvents();
   fetchInitialData();
   fetchChartHistory();
 };
-

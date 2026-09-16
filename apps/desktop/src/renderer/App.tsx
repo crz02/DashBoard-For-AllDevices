@@ -28,6 +28,15 @@ export default function App() {
       }
     })
 
+    // Set platform class on body for Windows / Linux / macOS styling
+    window.api.getAppInfo().then((info) => {
+      if (info?.platform) {
+        document.body.classList.remove('platform-mac', 'platform-win', 'platform-linux')
+        const platClass = info.platform === 'darwin' ? 'platform-mac' : info.platform === 'win32' ? 'platform-win' : 'platform-linux'
+        document.body.classList.add(platClass)
+      }
+    })
+
     return () => {
       cleanupNav()
       cleanupStatus()

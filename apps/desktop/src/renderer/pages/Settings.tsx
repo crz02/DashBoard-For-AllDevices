@@ -262,11 +262,11 @@ export default function Settings({ onToast, onIntervalChange }: SettingsProps) {
             type="text"
             className="form-control"
             value={config.deviceId}
-            placeholder="irfans-macbook-air"
+            placeholder="my-computer"
             onChange={(e) => setConfig({ ...config, deviceId: e.target.value })}
           />
           <span className="form-helper">
-            Unique name identifying this Mac in your dashboard device grid.
+            Unique name identifying this device in your dashboard device grid.
           </span>
         </div>
 
@@ -285,7 +285,7 @@ export default function Settings({ onToast, onIntervalChange }: SettingsProps) {
             <option value={0}>Manual sync only</option>
           </select>
           <span className="form-helper">
-            How frequently Statuser checks macOS hardware and reports telemetry silently in the background.
+            How frequently Statuser checks system hardware and reports telemetry silently in the background.
           </span>
         </div>
 
@@ -297,10 +297,12 @@ export default function Settings({ onToast, onIntervalChange }: SettingsProps) {
               onChange={(e) => setConfig({ ...config, autoStart: e.target.checked })}
               style={{ width: 17, height: 17, accentColor: 'var(--color-primary)' }}
             />
-            <span style={{ fontSize: 13, fontWeight: 600 }}>Start Statuser automatically when you log into your Mac</span>
+            <span style={{ fontSize: 13, fontWeight: 600 }}>
+              Start Statuser automatically when you log into your {appInfo?.platform === 'darwin' ? 'Mac' : appInfo?.platform === 'win32' ? 'PC' : 'computer'}
+            </span>
           </label>
           <span className="form-helper" style={{ marginLeft: 29 }}>
-            Keeps your menu bar widget and background telemetry active across reboots.
+            Keeps your system tray widget and background telemetry active across reboots.
           </span>
         </div>
       </div>
@@ -330,8 +332,8 @@ export default function Settings({ onToast, onIntervalChange }: SettingsProps) {
             <div style={{ fontWeight: 700, marginTop: 2 }}>v{appInfo?.electron || '33'}</div>
           </div>
           <div>
-            <div style={{ color: 'var(--text-dim)' }}>macOS Kernel</div>
-            <div style={{ fontWeight: 700, marginTop: 2 }}>{appInfo?.osRelease || 'Darwin'}</div>
+            <div style={{ color: 'var(--text-dim)' }}>{appInfo?.platform === 'darwin' ? 'macOS Kernel' : appInfo?.platform === 'win32' ? 'Windows OS' : 'OS Kernel'}</div>
+            <div style={{ fontWeight: 700, marginTop: 2 }}>{appInfo?.osRelease || 'OS'}</div>
           </div>
         </div>
       </div>

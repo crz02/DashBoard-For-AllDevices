@@ -21,7 +21,7 @@
   --color-red: #f43f5e;
   --color-amber: #f59e0b;
   
-  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Inter', Helvetica, Arial, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', 'Inter', Helvetica, Arial, sans-serif;
   --radius-sm: 10px;
   --radius-md: 16px;
   --radius-lg: 20px;
@@ -47,6 +47,25 @@ html, body {
   height: 100%;
   overflow: hidden;
   background: transparent !important;
+}
+
+/* Windows / Linux: solid dark background since vibrancy is macOS-only */
+body.platform-win,
+body.platform-linux {
+  background: #090d16 !important;
+}
+
+body.platform-win .app-container,
+body.platform-linux .app-container {
+  background: #090d16;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Windows/Linux: no macOS traffic light offset needed in header */
+body.platform-win .titlebar-header,
+body.platform-linux .titlebar-header {
+  padding: 0 20px;
 }
 
 body {
