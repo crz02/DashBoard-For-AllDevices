@@ -10,12 +10,11 @@ export default function Devices({ onToast }: DevicesProps) {
   const [loading, setLoading] = useState(true)
   const [isServerOffline, setIsServerOffline] = useState(false)
   const [serverUrl, setServerUrl] = useState('')
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [serverStarting, setServerStarting] = useState(false)
   const [search, setSearch] = useState('')
 
   const loadDevices = async () => {
     try {
-      // Always get the latest local machine telemetry
       const local = await window.api.getLocalDevice()
       setLocalDevice(local)
 
@@ -23,22 +22,37 @@ export default function Devices({ onToast }: DevicesProps) {
       const url = config.dashboardUrl || 'http://localhost:8080'
       setServerUrl(url)
 
-      // Fetch devices via native Electron network stack (no CORS restrictions)
       const res = await window.api.fetchDevices(url, config.userId)
 
       if (res.success && res.devices) {
         setDevices(res.devices)
         setIsServerOffline(false)
-        setErrorMessage(null)
       } else {
         setIsServerOffline(true)
-        setErrorMessage(res.message || `Could not connect to ${url}`)
       }
-    } catch (e: any) {
+    } catch {
       setIsServerOffline(true)
-      setErrorMessage(e.message || 'Connection error')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleStartServer = async () => {
+    setServerStarting(true)
+    try {
+      const res = await window.api.startServer()
+      if (res.success) {
+        onToast('success', res.message)
+        // Trigger report for this machine and reload
+        await window.api.triggerReport()
+        await loadDevices()
+      } else {
+        onToast('error', res.message || 'Failed to start server')
+      }
+    } catch (e: any) {
+      onToast('error', e.message || 'Error launching server')
+    } finally {
+      setServerStarting(false)
     }
   }
 
@@ -48,14 +62,10 @@ export default function Devices({ onToast }: DevicesProps) {
     return () => clearInterval(interval)
   }, [])
 
-  // Merge devices: if server returned devices, use that list (ensuring local device is marked)
-  // If server is offline, display the local device so the screen is never blank!
   let allDevices = [...devices]
-
   if (allDevices.length === 0 && localDevice) {
     allDevices = [localDevice]
   } else if (localDevice) {
-    // If local device isn't in server list yet, prepend it
     const exists = allDevices.some((d) => d.id === localDevice.id || d.name === localDevice.name)
     if (!exists) {
       allDevices = [localDevice, ...allDevices]
@@ -114,7 +124,7 @@ export default function Devices({ onToast }: DevicesProps) {
       <div className="page-header">
         <div>
           <h1 className="page-title">Connected Devices</h1>
-          <p className="page-subtitle">Real-time telemetry across your computers & phones</p>
+          <p className="page-subtitle">Real-time telemetry across all your machines & phones</p>
         </div>
 
         <button
@@ -122,7 +132,7 @@ export default function Devices({ onToast }: DevicesProps) {
           onClick={() => {
             setLoading(true)
             loadDevices()
-            onToast('success', 'Checking device network...')
+            onToast('success', 'Refreshing devices...')
           }}
           disabled={loading}
         >
@@ -131,52 +141,46 @@ export default function Devices({ onToast }: DevicesProps) {
             <polyline points="1 20 1 14 7 14" />
             <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
           </svg>
-          {loading ? 'Refreshing...' : 'Refresh'}
+          {loading ? 'Checking...' : 'Refresh'}
         </button>
       </div>
 
-      {/* Server Offline / Status Notice */}
+      {/* Server Offline / 1-Click Launch Notice */}
       {isServerOffline && (
         <div
           style={{
             background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(245, 158, 11, 0.04) 100%)',
             border: '1px solid rgba(245, 158, 11, 0.3)',
-            borderRadius: '12px',
+            borderRadius: '14px',
             padding: '16px 20px',
             marginBottom: '18px',
-            fontSize: '13px'
+            fontSize: '13px',
+            boxShadow: 'inset 0 1px 1px 0 rgba(255, 255, 255, 0.15)'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#fcd34d', fontWeight: 700 }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-              Dashboard Server Offline ({serverUrl || 'http://localhost:8080'})
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#fcd34d', fontWeight: 700 }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                Dashboard Server Offline ({serverUrl || 'http://localhost:8080'})
+              </div>
+              <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>
+                Start the central server to sync and view your phones and other computers.
+              </div>
             </div>
 
             <button
-              className="btn sm"
-              onClick={() => {
-                setLoading(true)
-                loadDevices()
-              }}
-              style={{ borderColor: 'rgba(245, 158, 11, 0.4)', color: '#fcd34d' }}
+              className="btn primary sm"
+              onClick={handleStartServer}
+              disabled={serverStarting}
+              style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', borderColor: '#f59e0b' }}
             >
-              Retry Connection
+              {serverStarting ? 'Starting Server...' : 'Start Server Now'}
             </button>
-          </div>
-
-          <p style={{ color: 'var(--text-muted)', lineHeight: 1.5, margin: '4px 0 8px 0' }}>
-            To sync metrics between devices, run your central server in a terminal with:
-            <code style={{ background: 'rgba(0, 0, 0, 0.4)', padding: '2px 8px', borderRadius: 4, marginLeft: 6, color: '#fbbf24', fontFamily: 'monospace' }}>
-              ./start_server.sh
-            </code>
-          </p>
-          <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
-            Showing local telemetry for this Mac below.
           </div>
         </div>
       )}
@@ -186,7 +190,7 @@ export default function Devices({ onToast }: DevicesProps) {
         <input
           type="text"
           className="form-control"
-          placeholder="Filter devices by name, platform, or model..."
+          placeholder="Filter devices by name, platform, or hardware model..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -214,8 +218,8 @@ export default function Devices({ onToast }: DevicesProps) {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '18px 22px',
-                borderLeft: isThisMachine ? '3px solid #6366f1' : undefined
+                padding: '18px 24px',
+                borderLeft: isThisMachine ? '3px solid #818cf8' : undefined
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -224,12 +228,13 @@ export default function Devices({ onToast }: DevicesProps) {
                     width: 44,
                     height: 44,
                     borderRadius: 12,
-                    background: isThisMachine ? 'rgba(99, 102, 241, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                    background: isThisMachine ? 'rgba(99, 102, 241, 0.18)' : 'rgba(255, 255, 255, 0.05)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: isThisMachine ? '#818cf8' : '#a5b4fc',
-                    border: `1px solid ${isThisMachine ? 'rgba(99, 102, 241, 0.3)' : 'rgba(255, 255, 255, 0.08)'}`
+                    border: `1px solid ${isThisMachine ? 'rgba(99, 102, 241, 0.35)' : 'rgba(255, 255, 255, 0.08)'}`,
+                    boxShadow: isThisMachine ? '0 0 12px rgba(99, 102, 241, 0.25)' : 'none'
                   }}
                 >
                   {getPlatformIcon(device.platform)}
@@ -237,7 +242,7 @@ export default function Devices({ onToast }: DevicesProps) {
 
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-main)' }}>
+                    <span style={{ fontWeight: 800, fontSize: 16, color: 'var(--text-main)' }}>
                       {device.name}
                     </span>
 
@@ -248,9 +253,9 @@ export default function Devices({ onToast }: DevicesProps) {
                           fontWeight: 700,
                           padding: '2px 8px',
                           borderRadius: 6,
-                          background: 'rgba(99, 102, 241, 0.2)',
-                          color: '#a5b4fc',
-                          border: '1px solid rgba(99, 102, 241, 0.35)'
+                          background: 'rgba(99, 102, 241, 0.22)',
+                          color: '#c7d2fe',
+                          border: '1px solid rgba(129, 140, 248, 0.4)'
                         }}
                       >
                         This Mac
@@ -260,11 +265,11 @@ export default function Devices({ onToast }: DevicesProps) {
                     <span
                       style={{
                         fontSize: 10,
-                        fontWeight: 600,
+                        fontWeight: 700,
                         padding: '2px 8px',
                         borderRadius: 12,
-                        background: isOnline ? 'rgba(16, 185, 129, 0.15)' : 'rgba(148, 163, 184, 0.15)',
-                        color: isOnline ? 'var(--color-green)' : 'var(--text-muted)'
+                        background: isOnline ? 'rgba(16, 185, 129, 0.16)' : 'rgba(148, 163, 184, 0.16)',
+                        color: isOnline ? '#34d399' : 'var(--text-muted)'
                       }}
                     >
                       {isOnline ? 'Online' : 'Offline'}
@@ -282,23 +287,23 @@ export default function Devices({ onToast }: DevicesProps) {
               <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: 24 }}>
                 {device.cpu_usage !== undefined && (
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>CPU</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-dim)', fontWeight: 600 }}>CPU</div>
                     <div style={{ fontSize: 13, fontWeight: 700 }}>{device.cpu_usage}%</div>
                   </div>
                 )}
 
                 {device.ram_usage !== undefined && (
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>RAM</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-dim)', fontWeight: 600 }}>RAM</div>
                     <div style={{ fontSize: 13, fontWeight: 700 }}>{device.ram_usage}%</div>
                   </div>
                 )}
 
-                <div style={{ minWidth: 70, textAlign: 'right' }}>
-                  <div style={{ fontSize: 24, fontWeight: 800, color: battColor, letterSpacing: -0.5 }}>
+                <div style={{ minWidth: 74, textAlign: 'right' }}>
+                  <div style={{ fontSize: 24, fontWeight: 900, color: battColor, letterSpacing: -0.5 }}>
                     {device.battery_level}%
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, fontWeight: 600 }}>
                     {device.is_charging ? '⚡ Charging' : device.power_source || 'Battery'}
                   </div>
                 </div>

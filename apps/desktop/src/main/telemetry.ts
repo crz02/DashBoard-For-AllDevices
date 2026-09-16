@@ -15,8 +15,18 @@ export interface TelemetryPayload {
   cycle_count: number
   temperature: number
   thermal_state?: string
+  time_remaining?: string
   cpu_usage: number
   ram_usage: number
+  ram_total_gb?: string
+  ram_used_gb?: string
+  disk_usage?: {
+    total: string
+    used: string
+    free: string
+    percent: number
+  }
+  local_ip?: string
 }
 
 /**
@@ -32,6 +42,17 @@ function getMacBatteryDetails() {
     const is_charging = pmset.includes('charging') && !pmset.includes('not charging')
     const isAC = pmset.includes('AC Power') || pmset.includes('AC attached')
     const power_source = isAC ? 'AC Power' : 'Battery Power'
+
+    let time_remaining = ''
+    const timeMatch = pmset.match(/(\d+:\d+)\s+remaining/)
+    const toFullMatch = pmset.match(/(\d+:\d+)\s+to full/)
+    if (timeMatch) {
+      time_remaining = `${timeMatch[1]} left`
+    } else if (toFullMatch) {
+      time_remaining = `${toFullMatch[1]} to full`
+    } else if (isAC && battery_level >= 95) {
+      time_remaining = 'Fully Charged'
+    }
 
     let cycle_count = 0
     let battery_health = 'Good'
@@ -64,7 +85,8 @@ function getMacBatteryDetails() {
       is_charging,
       power_source,
       battery_health,
-      cycle_count
+      cycle_count,
+      time_remaining
     }
   } catch {
     return null
@@ -86,13 +108,48 @@ function getMacHardwareInfo() {
   try {
     const therm = execSync('pmset -g therm', { encoding: 'utf8', timeout: 1500 })
     if (therm.includes('thermal warning level has been recorded')) {
-      thermal_state = 'Throttled / Hot'
+      thermal_state = 'Throttled / Warm'
     }
   } catch {
     // ignore
   }
 
   return { cpu_model, thermal_state }
+}
+
+function getDiskStats() {
+  try {
+    const df = execSync('df -h / | awk "NR==2 {print \\$2, \\$3, \\$4, \\$5}"', { encoding: 'utf8', timeout: 1500 })
+      .trim()
+      .split(/\s+/)
+    if (df.length >= 4) {
+      return {
+        total: df[0],
+        used: df[1],
+        free: df[2],
+        percent: parseInt(df[3], 10) || 0
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return { total: 'N/A', used: 'N/A', free: 'N/A', percent: 0 }
+}
+
+function getLocalIp() {
+  try {
+    const ifaces = os.networkInterfaces()
+    for (const name of Object.keys(ifaces)) {
+      for (const net of ifaces[name] || []) {
+        if (net.family === 'IPv4' && !net.internal) {
+          return net.address
+        }
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return '127.0.0.1'
 }
 
 export async function getTelemetry(deviceId: string): Promise<TelemetryPayload> {
@@ -114,6 +171,7 @@ export async function getTelemetry(deviceId: string): Promise<TelemetryPayload> 
   let cpu_model = ''
   let thermal_state = 'Nominal'
   let temperature = 0
+  let time_remaining = ''
 
   if (isDarwin) {
     const macBatt = getMacBatteryDetails()
@@ -128,6 +186,7 @@ export async function getTelemetry(deviceId: string): Promise<TelemetryPayload> 
       power_source = macBatt.power_source
       battery_health = macBatt.battery_health
       cycle_count = macBatt.cycle_count
+      time_remaining = macBatt.time_remaining
     } else {
       power_source = 'AC Power (Desktop)'
       battery_health = 'N/A (Desktop)'
@@ -173,7 +232,13 @@ export async function getTelemetry(deviceId: string): Promise<TelemetryPayload> 
 
   // CPU and RAM percentages
   const cpu_usage = Math.round(cpu.currentLoad * 10) / 10
-  const ram_usage = Math.round(((mem.total - mem.available) / mem.total) * 1000) / 10
+  const usedMemBytes = mem.total - mem.available
+  const ram_usage = Math.round((usedMemBytes / mem.total) * 1000) / 10
+  const ram_total_gb = `${(mem.total / 1024 ** 3).toFixed(1)} GB`
+  const ram_used_gb = `${(usedMemBytes / 1024 ** 3).toFixed(1)} GB`
+
+  const disk_usage = isDarwin ? getDiskStats() : undefined
+  const local_ip = getLocalIp()
 
   return {
     device_id: deviceId || os.hostname().toLowerCase(),
@@ -188,7 +253,12 @@ export async function getTelemetry(deviceId: string): Promise<TelemetryPayload> 
     cycle_count,
     temperature,
     thermal_state,
+    time_remaining,
     cpu_usage,
-    ram_usage
+    ram_usage,
+    ram_total_gb,
+    ram_used_gb,
+    disk_usage,
+    local_ip
   }
 }

@@ -19,6 +19,22 @@ export default function Settings({ onToast, onIntervalChange }: SettingsProps) {
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
   const [saving, setSaving] = useState(false)
   const [appInfo, setAppInfo] = useState<any>(null)
+  const [serverStatus, setServerStatus] = useState<{ running: boolean; port: number; url: string; canManage: boolean }>({
+    running: false,
+    port: 8080,
+    url: 'http://localhost:8080',
+    canManage: false
+  })
+  const [serverToggling, setServerToggling] = useState(false)
+
+  const refreshServerStatus = async () => {
+    try {
+      const s = await window.api.getServerStatus()
+      setServerStatus(s)
+    } catch {
+      // ignore
+    }
+  }
 
   useEffect(() => {
     window.api.getConfig().then((c: any) => {
@@ -27,6 +43,9 @@ export default function Settings({ onToast, onIntervalChange }: SettingsProps) {
     })
 
     window.api.getAppInfo().then(setAppInfo)
+    refreshServerStatus()
+    const interval = setInterval(refreshServerStatus, 5000)
+    return () => clearInterval(interval)
   }, [])
 
   const handleTestConnection = async () => {
@@ -47,6 +66,30 @@ export default function Settings({ onToast, onIntervalChange }: SettingsProps) {
     } finally {
       setTesting(false)
     }
+  }
+
+  const handleToggleServer = async () => {
+    setServerToggling(true)
+    try {
+      if (serverStatus.running) {
+        const res = await window.api.stopServer()
+        onToast('success', res.message)
+      } else {
+        const res = await window.api.startServer()
+        if (res.success) onToast('success', res.message)
+        else onToast('error', res.message)
+      }
+      await refreshServerStatus()
+    } catch (e: any) {
+      onToast('error', e.message || 'Server action failed')
+    } finally {
+      setServerToggling(false)
+    }
+  }
+
+  const handleOpenBrowser = () => {
+    const url = config.dashboardUrl || 'http://localhost:8080'
+    window.api.openExternal(url)
   }
 
   const handleSave = async () => {
@@ -74,8 +117,8 @@ export default function Settings({ onToast, onIntervalChange }: SettingsProps) {
     <div>
       <div className="page-header">
         <div>
-          <h1 className="page-title">Settings</h1>
-          <p className="page-subtitle">Configure server connectivity and reporting frequency</p>
+          <h1 className="page-title">Settings & Control</h1>
+          <p className="page-subtitle">Configure server connectivity, reporting interval, and agent lifecycle</p>
         </div>
 
         <button
@@ -85,6 +128,53 @@ export default function Settings({ onToast, onIntervalChange }: SettingsProps) {
         >
           {saving ? 'Saving...' : hasUnsavedChanges ? 'Save Changes' : 'Saved ✓'}
         </button>
+      </div>
+
+      {/* Local Server Manager Card */}
+      <div className="card" style={{ border: '1px solid rgba(99, 102, 241, 0.25)', background: 'linear-gradient(135deg, rgba(30, 40, 70, 0.5) 0%, rgba(18, 24, 42, 0.5) 100%)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h2 className="card-title" style={{ marginBottom: 4 }}>
+              <span
+                style={{
+                  display: 'inline-block',
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  backgroundColor: serverStatus.running ? 'var(--color-green)' : 'var(--text-dim)',
+                  boxShadow: serverStatus.running ? '0 0 10px var(--color-green)' : 'none',
+                  marginRight: 6
+                }}
+              />
+              Local Dashboard Server
+            </h2>
+            <p style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
+              {serverStatus.running
+                ? 'Python server is actively listening on http://localhost:8080'
+                : 'Central dashboard server is currently stopped.'}
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', gap: 10 }}>
+            {serverStatus.running && (
+              <button className="btn sm" onClick={handleOpenBrowser}>
+                Open Web Dashboard ↗
+              </button>
+            )}
+
+            <button
+              className={`btn sm ${serverStatus.running ? '' : 'primary'}`}
+              onClick={handleToggleServer}
+              disabled={serverToggling}
+            >
+              {serverToggling
+                ? 'Please wait...'
+                : serverStatus.running
+                  ? 'Stop Server'
+                  : 'Start Server'}
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Connection Card */}
@@ -117,11 +207,11 @@ export default function Settings({ onToast, onIntervalChange }: SettingsProps) {
               disabled={testing || !config.dashboardUrl}
               style={{ whiteSpace: 'nowrap' }}
             >
-              {testing ? 'Testing...' : 'Test Connection'}
+              {testing ? 'Pinging...' : 'Test Connection'}
             </button>
           </div>
           <span className="form-helper">
-            The HTTP or HTTPS URL where your Statuser dashboard server is listening.
+            Local or public URL where the Statuser ingestion endpoint is hosted.
           </span>
 
           {testResult && (
@@ -129,8 +219,8 @@ export default function Settings({ onToast, onIntervalChange }: SettingsProps) {
               style={{
                 marginTop: 8,
                 fontSize: 12,
-                fontWeight: 600,
-                color: testResult.success ? 'var(--color-green)' : 'var(--color-red)',
+                fontWeight: 700,
+                color: testResult.success ? '#34d399' : '#fb7185',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6
@@ -163,7 +253,7 @@ export default function Settings({ onToast, onIntervalChange }: SettingsProps) {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
           </svg>
-          Agent Behavior
+          Agent Behavior & Automation
         </h2>
 
         <div className="form-group">
@@ -176,41 +266,41 @@ export default function Settings({ onToast, onIntervalChange }: SettingsProps) {
             onChange={(e) => setConfig({ ...config, deviceId: e.target.value })}
           />
           <span className="form-helper">
-            Unique name identifying this machine in your dashboard device grid.
+            Unique name identifying this Mac in your dashboard device grid.
           </span>
         </div>
 
         <div className="form-group" style={{ marginTop: 16 }}>
-          <label>Background Reporting Interval</label>
+          <label>Background Reporting Frequency</label>
           <select
             className="form-control"
             value={config.intervalMin}
             onChange={(e) => setConfig({ ...config, intervalMin: parseInt(e.target.value, 10) })}
           >
-            <option value={1}>Every 1 minute (High Frequency)</option>
-            <option value={5}>Every 5 minutes (Recommended)</option>
+            <option value={1}>Every 1 minute (Real-time monitoring)</option>
+            <option value={5}>Every 5 minutes (Recommended default)</option>
             <option value={15}>Every 15 minutes</option>
             <option value={30}>Every 30 minutes</option>
-            <option value={60}>Every 1 hour</option>
+            <option value={60}>Every 1 hour (Low battery impact)</option>
             <option value={0}>Manual sync only</option>
           </select>
           <span className="form-helper">
-            How frequently Statuser reports battery and hardware metrics silently in the background.
+            How frequently Statuser checks macOS hardware and reports telemetry silently in the background.
           </span>
         </div>
 
         <div className="form-group" style={{ marginTop: 16 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
             <input
               type="checkbox"
               checked={config.autoStart}
               onChange={(e) => setConfig({ ...config, autoStart: e.target.checked })}
-              style={{ width: 16, height: 16, accentColor: 'var(--color-primary)' }}
+              style={{ width: 17, height: 17, accentColor: 'var(--color-primary)' }}
             />
-            <span>Launch Statuser automatically when I log into my Mac</span>
+            <span style={{ fontSize: 13, fontWeight: 600 }}>Start Statuser automatically when you log into your Mac</span>
           </label>
-          <span className="form-helper" style={{ marginLeft: 26 }}>
-            Keeps telemetry continuously running in the macOS menu bar.
+          <span className="form-helper" style={{ marginLeft: 29 }}>
+            Keeps your menu bar widget and background telemetry active across reboots.
           </span>
         </div>
       </div>
@@ -226,18 +316,22 @@ export default function Settings({ onToast, onIntervalChange }: SettingsProps) {
           System & App Diagnostics
         </h2>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, fontSize: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, fontSize: 12 }}>
           <div>
             <div style={{ color: 'var(--text-dim)' }}>App Version</div>
-            <div style={{ fontWeight: 600, marginTop: 2 }}>{appInfo?.version || '1.0.0'}</div>
+            <div style={{ fontWeight: 700, marginTop: 2 }}>{appInfo?.version || '1.0.0'}</div>
           </div>
           <div>
             <div style={{ color: 'var(--text-dim)' }}>Architecture</div>
-            <div style={{ fontWeight: 600, marginTop: 2 }}>{appInfo?.platform}-{appInfo?.arch}</div>
+            <div style={{ fontWeight: 700, marginTop: 2 }}>{appInfo?.platform}-{appInfo?.arch}</div>
           </div>
           <div>
             <div style={{ color: 'var(--text-dim)' }}>Electron Runtime</div>
-            <div style={{ fontWeight: 600, marginTop: 2 }}>v{appInfo?.electron || '33'}</div>
+            <div style={{ fontWeight: 700, marginTop: 2 }}>v{appInfo?.electron || '33'}</div>
+          </div>
+          <div>
+            <div style={{ color: 'var(--text-dim)' }}>macOS Kernel</div>
+            <div style={{ fontWeight: 700, marginTop: 2 }}>{appInfo?.osRelease || 'Darwin'}</div>
           </div>
         </div>
       </div>
