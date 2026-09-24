@@ -20,14 +20,26 @@ mac:
 
 win:
   icon: resources/icon.ico
+  publisherName: "Statuser"
+  certificateFile: resources/cert.pfx
+  certificatePassword: "statuser"
+  requestedExecutionLevel: asInvoker
   target:
-    - nsis
+    - target: nsis
+    - target: portable
+    - target: zip
   artifactName: "${productName}-${version}-${os}.${ext}"
 
 nsis:
-  oneClick: false
+  oneClick: true
   perMachine: false
-  allowToChangeInstallationDirectory: true
+  allowElevation: false
+  allowToChangeInstallationDirectory: false
+  deleteAppDataOnUninstall: false
+  artifactName: "${productName}-Setup-${version}.${ext}"
+
+portable:
+  artifactName: "${productName}-Portable-${version}.${ext}"
 
 linux:
   target:
