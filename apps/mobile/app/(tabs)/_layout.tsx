@@ -2,6 +2,8 @@ import React from 'react';
 import { Tabs } from 'expo-router';
 import { StyleSheet, Platform, View } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+import { LiquidGlassView, isLiquidGlassSupported } from '@callstack/liquid-glass';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -13,7 +15,67 @@ function AndroidTabBackground() {
 }
 
 function IOSTabBackground() {
-  return <BlurView intensity={85} tint="dark" style={StyleSheet.absoluteFill} />;
+  if (isLiquidGlassSupported) {
+    return (
+      <LiquidGlassView 
+        style={StyleSheet.absoluteFill} 
+        effect="regular"
+        colorScheme="dark"
+      />
+    );
+  }
+  return (
+    <View style={StyleSheet.absoluteFill}>
+      <BlurView intensity={80} tint="systemUltraThinMaterialDark" style={StyleSheet.absoluteFill} />
+      {/* Specular refraction sheen */}
+      <LinearGradient
+        colors={[
+          'rgba(255, 255, 255, 0.18)',
+          'rgba(255, 255, 255, 0.06)',
+          'rgba(255, 255, 255, 0.01)',
+          'rgba(99, 102, 241, 0.05)',
+        ]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
+      {/* Top specular rim */}
+      <View style={styles.topRimLight} pointerEvents="none" />
+    </View>
+  );
+}
+
+function IOSHeaderBackground() {
+  if (isLiquidGlassSupported) {
+    return (
+      <LiquidGlassView 
+        style={StyleSheet.absoluteFill} 
+        effect="regular"
+        colorScheme="dark"
+      />
+    );
+  }
+  return (
+    <View style={StyleSheet.absoluteFill}>
+      <BlurView intensity={80} tint="systemUltraThinMaterialDark" style={StyleSheet.absoluteFill} />
+      {/* Specular refraction sheen */}
+      <LinearGradient
+        colors={[
+          'rgba(255, 255, 255, 0.18)',
+          'rgba(255, 255, 255, 0.06)',
+          'rgba(255, 255, 255, 0.01)',
+          'rgba(99, 102, 241, 0.05)',
+        ]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
+      {/* Bottom specular rim */}
+      <View style={styles.bottomRimLight} pointerEvents="none" />
+    </View>
+  );
 }
 
 export default function TabLayout() {
@@ -31,9 +93,8 @@ export default function TabLayout() {
         height: 86,
         paddingBottom: Math.max(insets.bottom, 20),
         paddingTop: 8,
-        backgroundColor: 'rgba(11, 15, 25, 0.72)',
-        borderTopColor: 'rgba(255, 255, 255, 0.08)',
-        borderTopWidth: 0.5,
+        backgroundColor: 'transparent',
+        borderTopWidth: 0,
         elevation: 0,
       }
     : {
@@ -62,15 +123,13 @@ export default function TabLayout() {
         tabBarBackground: () =>
           IS_IOS ? <IOSTabBackground /> : <AndroidTabBackground />,
         headerStyle: {
-          backgroundColor: IS_IOS ? 'rgba(11, 15, 25, 0.75)' : '#0d1121',
+          backgroundColor: IS_IOS ? 'transparent' : '#0d1121',
           elevation: IS_ANDROID ? 6 : 0,
           shadowOpacity: IS_IOS ? 0 : undefined,
           borderBottomWidth: IS_ANDROID ? 0 : undefined,
         },
         headerBackground: () =>
-          IS_IOS ? (
-            <BlurView intensity={85} tint="dark" style={StyleSheet.absoluteFill} />
-          ) : null,
+          IS_IOS ? <IOSHeaderBackground /> : null,
         headerTitleStyle: {
           fontSize: 17,
           fontWeight: '700',
@@ -129,7 +188,23 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   androidTabBackground: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: '#0d1121',
+  },
+  topRimLight: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  bottomRimLight: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
 });

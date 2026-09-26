@@ -12,7 +12,8 @@ const store = new Store({
     userId: 'default',
     deviceId: os.hostname().toLowerCase(),
     intervalMin: 5,
-    autoStart: false
+    autoStart: false,
+    apiKey: ''   // FIX 4: API key for /api/report auth
   }
 })
 
@@ -189,14 +190,23 @@ function createWindow() {
 function findServerScriptPath(): string | null {
   const fs = require('fs')
   const possiblePaths = [
+    // Dev mode — relative from compiled output
     join(__dirname, '../../../../server/app.py'),
     join(__dirname, '../../../server/app.py'),
+    join(__dirname, '../../server/app.py'),
+    // Packaged app — server bundled inside resources
+    join(process.resourcesPath || '', 'server', 'app.py'),
+    // Fallback: next to the app executable
+    join(app.getPath('exe'), '..', 'server', 'app.py'),
+    // CWD (useful when running via npm run dev)
     join(process.cwd(), 'server/app.py'),
-    // Platform-aware home directory fallback
-    join(os.homedir(), 'Documents', 'GitHub', 'DashBoard', 'server', 'app.py')
   ]
   for (const p of possiblePaths) {
-    if (fs.existsSync(p)) return p
+    try {
+      if (fs.existsSync(p)) return p
+    } catch {
+      // ignore permission errors
+    }
   }
   return null
 }
@@ -441,13 +451,14 @@ async function triggerReport() {
   const url = store.get('dashboardUrl') as string
   const userId = store.get('userId') as string
   const deviceId = store.get('deviceId') as string
+  const apiKey = store.get('apiKey') as string   // FIX 4
 
   try {
     const stats = await getTelemetry(deviceId)
     lastTelemetry = stats
     checkLowBatteryAlert(stats)
 
-    await reportTelemetry(url, userId, stats)
+    await reportTelemetry(url, userId, stats, apiKey)  // FIX 4: pass apiKey
     lastReportTime = Date.now()
     lastReportStatus = {
       success: true,

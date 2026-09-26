@@ -245,7 +245,24 @@ export default function Settings({ onToast, onIntervalChange }: SettingsProps) {
             Scopes telemetry to this user account on the dashboard. Leave as "default" for personal setups.
           </span>
         </div>
+
+        {/* FIX 12: API Key field for REPORT_API_KEY auth */}
+        <div className="form-group" style={{ marginTop: 16 }}>
+          <label>Report API Key <span style={{ color: 'var(--text-dim)', fontWeight: 400 }}>(Optional)</span></label>
+          <input
+            type="password"
+            className="form-control"
+            value={config.apiKey || ''}
+            placeholder="Leave blank if server auth is disabled"
+            onChange={(e) => setConfig({ ...config, apiKey: e.target.value })}
+          />
+          <span className="form-helper">
+            Set this if your dashboard server has <code>REPORT_API_KEY</code> configured in its <code>.env</code> file.
+            Must match exactly or your reports will be rejected with 401.
+          </span>
+        </div>
       </div>
+
 
       {/* Agent Preferences Card */}
       <div className="card">

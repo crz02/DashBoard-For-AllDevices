@@ -281,11 +281,13 @@ function AndroidHomeScreen() {
 function IOSHomeScreen() {
   const { stats, refreshing, reporting, lastReportedTime, serverStatus, serverUrl, statusMessage, onRefresh, handleManualReport } = useDashboard();
 
-  const isIOS = true;
-  const isAndroid = false;
+  // FIX 7: These were previously hardcoded constants (isIOS = true, isAndroid = false)
+  const isIOS = Platform.OS === 'ios';
+  const isAndroid = Platform.OS === 'android';
   const platformName = `Apple iOS ${Device.osVersion || ''}`.trim();
-  const thisDeviceBadge = 'This iPhone';
-  const platformSubtitle = `${stats?.model || 'Device'} • iOS`;
+  const thisDeviceBadge = isIOS ? 'This iPhone' : 'This Device';
+  const platformSubtitle = `${stats?.model || 'Device'} • ${isIOS ? 'iOS' : Platform.OS}`;
+
 
   if (!stats) {
     return (

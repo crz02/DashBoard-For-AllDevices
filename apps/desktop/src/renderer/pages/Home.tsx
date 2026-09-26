@@ -406,14 +406,18 @@ Generated: ${new Date().toLocaleString()}
         <div className="stat-item-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span className="stat-label">System Drive</span>
-            <span style={{ fontSize: 11.5, color: 'var(--text-dim)', fontWeight: 600 }}>{stats?.disk_usage?.free || '60 GB'} free</span>
+            <span style={{ fontSize: 11.5, color: 'var(--text-dim)', fontWeight: 600 }}>
+              {stats?.disk_usage?.free ? `${stats.disk_usage.free} free` : '--'}
+            </span>
           </div>
-          <div className="stat-value">{stats?.disk_usage?.percent || 18}%</div>
+          <div className="stat-value">
+            {stats?.disk_usage?.percent != null ? `${stats.disk_usage.percent}%` : '--'}
+          </div>
           <div className="stat-bar">
             <div
               className="stat-bar-fill"
               style={{
-                width: `${Math.min(100, stats?.disk_usage?.percent || 18)}%`,
+                width: `${Math.min(100, stats?.disk_usage?.percent || 0)}%`,
                 backgroundColor: (stats?.disk_usage?.percent || 0) > 85 ? 'var(--color-red)' : '#10b981'
               }}
             />

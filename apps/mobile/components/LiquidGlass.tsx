@@ -12,6 +12,7 @@ import {
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
+import { LiquidGlassView, isLiquidGlassSupported } from '@callstack/liquid-glass';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LiquidGlassCard
@@ -85,6 +86,18 @@ export function LiquidGlassCard({
   }
 
   // ── iOS — Full Liquid Glass ───────────────────────────────────────────────
+  if (isLiquidGlassSupported) {
+    return (
+      <LiquidGlassView 
+        style={[styles.cardOuter, style]} 
+        effect="regular"
+        colorScheme="system"
+      >
+        <View style={[styles.innerContent, contentStyle]}>{children}</View>
+      </LiquidGlassView>
+    );
+  }
+
   return (
     <View style={[styles.cardOuter, style]}>
       {/* Native UIVisualEffectView */}

@@ -11,11 +11,13 @@ export interface TelemetryPayload {
   battery_level: number;
   is_charging: boolean;
   power_source: string;
-  battery_health: string;
-  cycle_count: number;
-  temperature: number;
-  cpu_usage: number;
-  ram_usage: number;
+  // FIX 6: These are genuinely unavailable on mobile via Expo SDK.
+  // We send null instead of fake values so the dashboard shows '--'.
+  battery_health: string | null;
+  cycle_count: number | null;
+  temperature: number | null;
+  cpu_usage: number | null;
+  ram_usage: number | null;
 }
 
 export async function getTelemetry(deviceIdOverride?: string): Promise<TelemetryPayload> {
@@ -23,36 +25,44 @@ export async function getTelemetry(deviceIdOverride?: string): Promise<Telemetry
   const batteryLevel = await Battery.getBatteryLevelAsync();
   const batteryState = await Battery.getBatteryStateAsync();
   
-  const is_charging = batteryState === Battery.BatteryState.CHARGING || batteryState === Battery.BatteryState.FULL;
+  const is_charging =
+    batteryState === Battery.BatteryState.CHARGING ||
+    batteryState === Battery.BatteryState.FULL;
   const power_source = is_charging ? 'AC Power' : 'Battery';
   
-  // Storage config
+  // Device ID — persist across restarts
   let deviceId = deviceIdOverride;
   if (!deviceId) {
     try {
-      deviceId = await AsyncStorage.getItem('deviceId') || undefined;
+      deviceId = (await AsyncStorage.getItem('deviceId')) || undefined;
     } catch (e) {}
   }
   
   if (!deviceId) {
-    deviceId = `${Device.osName || 'unknown'}-${Device.modelName || 'device'}`.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+    deviceId = `${Device.osName || 'unknown'}-${Device.modelName || 'device'}`
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '-');
+    try {
+      await AsyncStorage.setItem('deviceId', deviceId);
+    } catch (e) {}
   }
 
-  // Mobile platforms don't typically expose deep metrics to normal apps without native modules
-  // So we provide what we can
-  
+  // FIX 6: Send null for metrics that are genuinely unavailable on mobile.
+  // The server uses COALESCE so it won't overwrite previous values with null.
+  // The dashboard renders null/missing fields as '--' instead of fake zeros.
   return {
     device_id: deviceId,
-    name: Device.deviceName || 'Mobile Device',
+    name: Device.deviceName || `${Device.modelName || 'Mobile Device'}`,
     platform: Platform.OS, // 'ios' or 'android'
     model: Device.modelName || 'Unknown',
     battery_level: Math.round(batteryLevel * 100),
     is_charging,
     power_source,
-    battery_health: 'Good', // Hard to get on mobile without native modules
-    cycle_count: 0,
-    temperature: 0,
-    cpu_usage: 0, 
-    ram_usage: 0
+    // Genuinely unavailable on iOS/Android without native modules:
+    battery_health: null,  // iOS doesn't expose this to JS
+    cycle_count: null,     // Not available via Expo SDK
+    temperature: null,     // Not available on iOS at all; Android varies
+    cpu_usage: null,       // Not available without native modules
+    ram_usage: null,       // Not available without native modules
   };
 }

@@ -30,6 +30,43 @@ export interface TelemetryPayload {
 }
 
 /**
+ * FIX 3: Get macOS CPU temperature via powermetrics (requires no sudo) or
+ * fall back to a thermal-state estimate parsed from pmset.
+ * Returns temperature in °C or 0 if unavailable.
+ */
+function getMacTemperature(): number {
+  // Try powermetrics for CPU die temperature (macOS 11+, no sudo needed)
+  try {
+    const output = execSync(
+      'powermetrics --samplers cpu_power -n 1 -i 100 2>/dev/null | grep -i "CPU die temperature"',
+      { encoding: 'utf8', timeout: 3000 }
+    )
+    const match = output.match(/CPU die temperature:\s*([\d.]+)/i)
+    if (match) return parseFloat(match[1])
+  } catch {
+    // ignore
+  }
+
+  // Fallback: ioreg thermal sensors (works on Intel Macs)
+  try {
+    const ioreg = execSync(
+      'ioreg -r -n AppleACPIPlatformExpert -k IOPMFullWakeReason 2>/dev/null | grep -i temperature | head -1',
+      { encoding: 'utf8', timeout: 2000 }
+    )
+    const match = ioreg.match(/([\d.]+)/)
+    if (match) {
+      const raw = parseFloat(match[1])
+      // ioreg returns millidegrees on some Macs
+      return raw > 200 ? raw / 100 : raw
+    }
+  } catch {
+    // ignore
+  }
+
+  return 0
+}
+
+/**
  * Native macOS battery and power telemetry via pmset and ioreg.
  * Extremely fast (<50ms) and 100% reliable on Apple Silicon & Intel Macs.
  */
@@ -245,6 +282,9 @@ export async function getTelemetry(deviceId: string): Promise<TelemetryPayload> 
       power_source = 'AC Power (Desktop)'
       battery_health = 'N/A (Desktop)'
     }
+
+    // FIX 3: Collect macOS temperature (was always 0 before)
+    temperature = getMacTemperature()
   } else {
     // Linux and Windows fallback via systeminformation
     try {

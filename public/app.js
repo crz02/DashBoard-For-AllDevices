@@ -19,6 +19,7 @@ let activeFilter = 'all';
 let searchQuery = '';
 let selectedHistoryDevice = 'all';
 let selectedHistoryHours = 24;
+let selectedHistoryMetric = 'battery';
 let batteryChart = null;
 let eventSource = null;
 let isSimulatorActive = false;
@@ -162,7 +163,10 @@ function initRealtimeEvents() {
   eventSource.addEventListener('device_ping', (e) => {
     try {
       const ping = JSON.parse(e.data);
-      showToast(`Update from ${ping.device_id}: ${ping.battery}%`, 'info');
+      // FIX 8: Only show toast for critical low-battery alerts, not every update
+      if (ping.alert === 'low_battery') {
+        showToast(`⚠️ Low battery: ${ping.device_id} is at ${ping.battery}%`, 'error');
+      }
     } catch (_) {}
   });
 
@@ -336,6 +340,15 @@ function setupUIEventListeners() {
     selectedHistoryDevice = e.target.value;
     fetchChartHistory();
   });
+
+  // Chart metric dropdown
+  const metricSelect = document.getElementById('chartMetricSelect');
+  if (metricSelect) {
+    metricSelect.addEventListener('change', (e) => {
+      selectedHistoryMetric = e.target.value;
+      fetchChartHistory();
+    });
+  }
 }
 
 // ==========================================================================
@@ -578,9 +591,25 @@ function createDeviceElement(device, index) {
   const temp = device.temperature;
   let tempDisplay = '--';
   let tempColor = '';
-  if (temp && temp > 0) {
+  if (temp !== null && temp !== undefined && temp > 0) {
     tempDisplay = `${temp.toFixed(1)}°C`;
     tempColor = temp > 45 ? 'color: var(--accent-red)' : temp > 38 ? 'color: var(--accent-yellow)' : '';
+  }
+
+  // CPU / RAM display — null means unavailable (mobile), 0 is a valid reading
+  const cpuDisplay = (device.cpu_usage !== null && device.cpu_usage !== undefined)
+    ? device.cpu_usage.toFixed(1) + '%' : '--';
+  const ramDisplay = (device.ram_usage !== null && device.ram_usage !== undefined)
+    ? device.ram_usage.toFixed(0) + '%' : '--';
+
+  // Cycle count display — null means unavailable
+  const cycleDisplay = device.cycle_count ? `(${device.cycle_count} cycles)` : '';
+
+  // Disk usage display — from desktop agent
+  let diskDisplay = '--';
+  if (device.disk_used && device.disk_total) {
+    const pct = device.disk_percent != null ? ` · ${device.disk_percent}%` : '';
+    diskDisplay = `${device.disk_used} / ${device.disk_total}${pct}`;
   }
 
   card.innerHTML = `
@@ -611,16 +640,21 @@ function createDeviceElement(device, index) {
     <div class="details-table">
       <div class="details-row">
         <span class="details-key">Health</span>
-        <span class="details-val">${escapeHtml(device.battery_health || 'Good')} ${device.cycle_count ? `(${device.cycle_count} cycles)` : ''}</span>
+        <span class="details-val">${escapeHtml(device.battery_health || '--')} ${cycleDisplay}</span>
       </div>
       <div class="details-row">
         <span class="details-key">CPU / RAM</span>
-        <span class="details-val">${device.cpu_usage ? device.cpu_usage.toFixed(1) + '%' : '0%'} / ${device.ram_usage ? device.ram_usage.toFixed(0) + '%' : '0%'}</span>
+        <span class="details-val">${cpuDisplay} / ${ramDisplay}</span>
       </div>
       <div class="details-row">
         <span class="details-key">Temperature</span>
         <span class="details-val" style="${tempColor}">${tempDisplay}</span>
       </div>
+      ${diskDisplay !== '--' ? `
+      <div class="details-row">
+        <span class="details-key">Disk</span>
+        <span class="details-val">${escapeHtml(diskDisplay)}</span>
+      </div>` : ''}
       <div class="details-row">
         <span class="details-key">IP Address</span>
         <span class="details-val">${escapeHtml(device.ip_address || 'Local')}</span>
@@ -795,19 +829,36 @@ function renderChartData(logs) {
     return deviceColorMap[devId];
   }
 
+  const metricKeyMap = {
+    'battery': 'percentage',
+    'cpu': 'cpu_usage',
+    'ram': 'ram_usage'
+  };
+  const metricLabelMap = {
+    'battery': 'Battery %',
+    'cpu': 'CPU %',
+    'ram': 'RAM %'
+  };
+  const key = metricKeyMap[selectedHistoryMetric] || 'percentage';
+  const labelSuffix = metricLabelMap[selectedHistoryMetric] || 'Battery %';
+  const titleEl = document.getElementById('chartTitle');
+  if (titleEl) {
+    titleEl.textContent = `📊 ${selectedHistoryMetric === 'cpu' ? 'CPU History' : selectedHistoryMetric === 'ram' ? 'RAM History' : 'Battery History'}`;
+  }
+
   if (selectedHistoryDevice !== 'all') {
     const labels = logs.map(l => {
       const d = new Date(l.timestamp * 1000);
       return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     });
-    const values = logs.map(l => l.percentage);
+    const values = logs.map(l => l[key] !== null ? l[key] : 0);
     const dev = devices.find(d => d.id === selectedHistoryDevice);
     const devName = dev ? dev.name : selectedHistoryDevice;
     const colors = getDeviceColors(selectedHistoryDevice);
 
     batteryChart.data.labels = labels;
     batteryChart.data.datasets = [{
-      label: `${devName} Battery %`,
+      label: `${devName} ${labelSuffix}`,
       data: values,
       borderColor: colors.line,
       backgroundColor: colors.fill,
@@ -836,9 +887,9 @@ function renderChartData(logs) {
 
     const datasets = Object.keys(deviceGroups).map(devId => {
       const devLogs = deviceGroups[devId];
-      const logMap = new Map(devLogs.map(item => [item.timestamp, item.percentage]));
+      const logMap = new Map(devLogs.map(item => [item.timestamp, item[key] !== null ? item[key] : 0]));
       
-      let lastVal = 50;
+      let lastVal = 0;
       const dataPoints = sortedTimestamps.map(t => {
         if (logMap.has(t)) {
           lastVal = logMap.get(t);
@@ -851,7 +902,7 @@ function renderChartData(logs) {
       const colors = getDeviceColors(devId);
 
       return {
-        label: devName,
+        label: `${devName} ${labelSuffix}`,
         data: dataPoints,
         borderColor: colors.line,
         backgroundColor: colors.fill,

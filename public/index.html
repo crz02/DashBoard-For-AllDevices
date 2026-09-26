@@ -129,18 +129,25 @@
     <section class="chart-panel">
       <div class="chart-header">
         <div>
-          <h2>📊 Battery History</h2>
-          <p class="section-desc">Battery level trends across your fleet</p>
+          <h2 id="chartTitle">📊 Battery History</h2>
+          <p class="section-desc">Historical trends across your fleet</p>
         </div>
         <div class="chart-actions">
+          <select id="chartMetricSelect" class="form-select" aria-label="Select metric">
+            <option value="battery">Battery Level</option>
+            <option value="cpu">CPU Usage</option>
+            <option value="ram">RAM Usage</option>
+          </select>
           <select id="chartDeviceSelect" class="form-select" aria-label="Select device">
             <option value="all">All Devices Combined</option>
           </select>
           <div class="btn-group">
-            <button class="btn btn-sm time-btn" data-hours="6">6h</button>
-            <button class="btn btn-sm time-btn" data-hours="12">12h</button>
-            <button class="btn btn-sm time-btn active" data-hours="24">24h</button>
-          </div>
+              <button class="btn btn-sm time-btn" data-hours="6">6h</button>
+              <button class="btn btn-sm time-btn" data-hours="12">12h</button>
+              <button class="btn btn-sm time-btn active" data-hours="24">24h</button>
+              <button class="btn btn-sm time-btn" data-hours="48">48h</button>
+              <button class="btn btn-sm time-btn" data-hours="168">7d</button>
+            </div>
         </div>
       </div>
       <div class="chart-wrapper">
@@ -181,16 +188,12 @@
 
       <div class="modal-body">
         <div class="tab-pane active" id="tab-macos">
-          <p class="tab-inst">Run in Terminal to send battery stats:</p>
+          <p class="tab-inst">Run in Terminal to send a one-time report:</p>
           <div class="code-row">
-            <code id="macOneLiner">./agents/macos/report_battery.sh http://localhost:8080 macbook</code>
+            <code id="macOneLiner">curl -s -X POST "http://localhost:8080/api/report" -H "Content-Type: application/json" -d '{"device_id":"macbook","name":"My MacBook","platform":"macos","battery_level":88}'</code>
             <button class="btn btn-sm copy-code-btn" data-target="macOneLiner">Copy</button>
           </div>
-          <p class="tab-inst" style="margin-top: 14px;">Run in background every 5 min via LaunchAgent:</p>
-          <div class="code-row">
-            <code id="macLaunchCmd">cp agents/macos/com.dashboard.battery.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/com.dashboard.battery.plist</code>
-            <button class="btn btn-sm copy-code-btn" data-target="macLaunchCmd">Copy</button>
-          </div>
+          <p class="tab-inst" style="margin-top: 14px;">For automatic background reporting, install the <strong>Statuser Desktop App</strong> &mdash; it runs silently in your menu bar and reports every few minutes automatically.</p>
         </div>
 
         <div class="tab-pane" id="tab-windows">
@@ -220,16 +223,17 @@
         </div>
 
         <div class="tab-pane" id="tab-linux">
-          <p class="tab-inst">Run in Terminal to send battery stats:</p>
+          <p class="tab-inst">Run in Terminal to send a one-time report:</p>
           <div class="code-row">
-            <code id="linuxOneLiner">./agents/linux/report_battery.sh http://localhost:8080 linux-laptop</code>
+            <code id="linuxOneLiner">curl -X POST "http://localhost:8080/api/report" -H "Content-Type: application/json" -d '{"device_id":"linux-laptop","platform":"linux","battery_level":75}'</code>
             <button class="btn btn-sm copy-code-btn" data-target="linuxOneLiner">Copy</button>
           </div>
-          <p class="tab-inst" style="margin-top: 14px;">Auto-install as a systemd timer (runs every 5 min):</p>
+          <p class="tab-inst" style="margin-top: 14px;">Auto-report every 5 min via crontab:</p>
           <div class="code-row">
-            <code id="linuxInstallCmd">./agents/linux/report_battery.sh --install http://localhost:8080</code>
+            <code id="linuxInstallCmd">*/5 * * * * curl -s -X POST "http://localhost:8080/api/report" -H "Content-Type: application/json" -d "{\"device_id\":\"linux-laptop\",\"platform\":\"linux\",\"battery_level\":$(cat /sys/class/power_supply/BAT0/capacity 2>/dev/null || echo 100)}" &gt;/dev/null</code>
             <button class="btn btn-sm copy-code-btn" data-target="linuxInstallCmd">Copy</button>
           </div>
+          <p class="tab-inst" style="margin-top: 8px; color: var(--accent-yellow);">Add the crontab line via: <code>crontab -e</code></p>
         </div>
       </div>
 

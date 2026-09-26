@@ -40,8 +40,9 @@ export default function SettingsScreen() {
       const deviceId = (await AsyncStorage.getItem('deviceId')) || '';
       const autoStart = (await AsyncStorage.getItem('autoStart')) === 'true';
       const intervalMin = (await AsyncStorage.getItem('intervalMin')) || '5';
+      const reportApiKey = (await AsyncStorage.getItem('reportApiKey')) || '';
 
-      setConfig({ dashboardUrl, userId, deviceId, autoStart, intervalMin });
+      setConfig({ dashboardUrl, userId, deviceId, autoStart, intervalMin, reportApiKey } as any);
     };
     loadConfig();
   }, []);
@@ -149,6 +150,27 @@ export default function SettingsScreen() {
                   placeholderTextColor="#64748b"
                   autoCapitalize="none"
                   autoCorrect={false}
+                />
+              </View>
+            </View>
+
+            <View style={styles.separator} />
+
+            <View style={styles.inputItem}>
+              <View style={[styles.iconBadge, { backgroundColor: '#f43f5e' }]}>
+                <Ionicons name="key-outline" size={17} color="#ffffff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.inputLabel}>Report API Key</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={(config as any).reportApiKey || ''}
+                  onChangeText={text => saveConfig('reportApiKey', text)}
+                  placeholder="Optional (if server secured)"
+                  placeholderTextColor="#64748b"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  secureTextEntry={true}
                 />
               </View>
             </View>
