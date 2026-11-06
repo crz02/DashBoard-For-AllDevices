@@ -293,11 +293,11 @@ export async function getTelemetry(deviceId: string): Promise<TelemetryPayload> 
         battery_level = battery.percent
         is_charging = battery.isCharging
         power_source = battery.acConnected ? 'AC Power' : 'Battery'
-        if (battery.maxcapacity && battery.designedcapacity) {
-          const healthPct = Math.round((battery.maxcapacity / battery.designedcapacity) * 100)
+        if (battery.maxCapacity && battery.designedCapacity) {
+          const healthPct = Math.round((battery.maxCapacity / battery.designedCapacity) * 100)
           battery_health = `${healthPct}%`
         }
-        cycle_count = battery.cyclecount || 0
+        cycle_count = battery.cycleCount || 0
         if (battery.timeRemaining && battery.timeRemaining > 0) {
           const hrs = Math.floor(battery.timeRemaining / 60)
           const mins = battery.timeRemaining % 60

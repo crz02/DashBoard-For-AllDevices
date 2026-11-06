@@ -1,7 +1,7 @@
 {
-  "name": "mobile",
+  "name": "statuser-mobile",
   "main": "expo-router/entry",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "dependencies": {
     "@callstack/liquid-glass": "^0.8.2",
     "@expo/vector-icons": "^15.1.1",
@@ -20,6 +20,7 @@
     "expo-splash-screen": "~57.0.9",
     "expo-status-bar": "~57.0.1",
     "expo-symbols": "~57.0.3",
+    "expo-system-ui": "~57.0.4",
     "expo-task-manager": "~57.0.18",
     "expo-web-browser": "~57.0.3",
     "react": "19.2.3",

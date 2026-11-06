@@ -11,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import * as Device from 'expo-device';
@@ -325,7 +326,7 @@ export default function SettingsScreen() {
             <View style={styles.separator} />
             <View style={styles.diagnosticRow}>
               <Text style={styles.diagLabel}>Statuser Agent</Text>
-              <Text style={styles.diagValue}>v1.0.0 (Liquid Glass)</Text>
+              <Text style={styles.diagValue}>v{Constants.expoConfig?.version ?? 'unknown'} (Liquid Glass)</Text>
             </View>
           </LiquidGlassCard>
         </View>

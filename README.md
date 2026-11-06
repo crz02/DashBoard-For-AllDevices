@@ -36,18 +36,46 @@ npm run dev
 npm run package
 ```
 
+### Download Statuser 2.0
+
+Installers are published on the [GitHub Releases page](https://github.com/crz02/DashBoard-For-AllDevices/releases):
+
+- **macOS**: `.dmg` installer and `.zip` archive
+- **Windows**: NSIS `.exe` installer, portable `.exe`, and `.zip`
+- **Linux**: `.AppImage` (runs on common Linux distributions without a package manager)
+- **Android**: signed `.apk` for sideloading
+
+To publish the `v2.0.0` release, configure these repository Actions secrets with
+the Android upload keystore used for signing the APK: `ANDROID_KEYSTORE_BASE64`,
+`ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, and `ANDROID_KEY_PASSWORD`.
+Then push the `v2.0.0` tag. Keep the keystore and passwords safe; the same key
+must be retained to sign future Android updates.
+
+Windows packages are unsigned unless `WINDOWS_CSC_LINK` and
+`WINDOWS_CSC_KEY_PASSWORD` are configured as Actions secrets, so Windows may
+show a publisher warning.
+For signed and notarized macOS installers, configure `MACOS_CSC_LINK`,
+`MACOS_CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, and
+`APPLE_TEAM_ID` as Actions secrets.
+Only use newly issued signing certificates in these secrets. The old checked-in
+certificate files have been removed from the current source; earlier Git
+history may still contain copies, so revoke/rotate those certificates before
+signing a release. Do not commit certificate or keystore files.
+
 ---
 
 ## 🛠️ Getting Started (The Dashboard Server)
 
 To use the apps, you need to run the Statuser Dashboard Server.
+The desktop installer also includes the server and dashboard files, but Python 3
+must be installed on the computer to start the local server from the desktop app.
 
 ### 1. Start the Server
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/Statuser.git
-cd Statuser
+git clone https://github.com/crz02/DashBoard-For-AllDevices.git
+cd DashBoard-For-AllDevices
 
 # Start the server (Requires Python 3)
 ./start_server.sh

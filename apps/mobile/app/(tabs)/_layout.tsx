@@ -188,7 +188,7 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   androidTabBackground: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: '#0d1121',
   },
   topRimLight: {

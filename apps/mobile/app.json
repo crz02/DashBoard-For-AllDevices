@@ -1,15 +1,16 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
-    "version": "1.0.0",
+    "name": "Statuser",
+    "slug": "statuser",
+    "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mobile",
+    "scheme": "statuser",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.mobile"
+      "bundleIdentifier": "com.statuser.mobile",
+      "buildNumber": "2"
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +20,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.mobile"
+      "package": "com.statuser.mobile",
+      "versionCode": 2
     },
     "web": {
       "bundler": "metro",
@@ -28,6 +30,7 @@
     },
     "plugins": [
       "expo-router",
+      "./plugins/withAndroidReleaseSigning",
       [
         "expo-splash-screen",
         {
