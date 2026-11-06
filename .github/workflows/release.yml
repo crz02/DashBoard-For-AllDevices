@@ -36,19 +36,35 @@ jobs:
         if: matrix.platform == 'win'
         working-directory: apps/desktop
         env:
-          CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
-        run: npm run package:win
+          RELEASE_CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
+          RELEASE_CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
+        shell: pwsh
+        run: |
+          if ($env:RELEASE_CSC_LINK) {
+            $env:CSC_LINK = $env:RELEASE_CSC_LINK
+            $env:CSC_KEY_PASSWORD = $env:RELEASE_CSC_KEY_PASSWORD
+          }
+          npm run package:win
       - name: Build macOS installers
         if: matrix.platform == 'mac'
         working-directory: apps/desktop
         env:
-          CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: npm run package:mac
+          RELEASE_CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
+          RELEASE_CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}
+          RELEASE_APPLE_ID: ${{ secrets.APPLE_ID }}
+          RELEASE_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          RELEASE_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -n "$RELEASE_CSC_LINK" ]; then
+            CSC_LINK="$RELEASE_CSC_LINK" \
+            CSC_KEY_PASSWORD="$RELEASE_CSC_KEY_PASSWORD" \
+            APPLE_ID="$RELEASE_APPLE_ID" \
+            APPLE_APP_SPECIFIC_PASSWORD="$RELEASE_APPLE_APP_SPECIFIC_PASSWORD" \
+            APPLE_TEAM_ID="$RELEASE_APPLE_TEAM_ID" \
+              npm run package:mac
+          else
+            npm run package:mac
+          fi
       - name: Build Linux installers
         if: matrix.platform == 'linux'
         working-directory: apps/desktop
@@ -77,6 +93,8 @@ jobs:
           distribution: temurin
           java-version: 17
       - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools platforms;android-36 build-tools;36.0.0
       - name: Install dependencies
         working-directory: apps/mobile
         run: npm ci

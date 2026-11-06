@@ -15,9 +15,9 @@
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit",
     "package": "electron-vite build && electron-builder",
-    "package:mac": "electron-vite build && electron-builder --mac",
-    "package:win": "electron-vite build && electron-builder --win --x64",
-    "package:linux": "electron-vite build && electron-builder --linux"
+    "package:mac": "electron-vite build && electron-builder --mac --publish never",
+    "package:win": "electron-vite build && electron-builder --win --x64 --publish never",
+    "package:linux": "electron-vite build && electron-builder --linux --publish never"
   },
   "dependencies": {
     "electron-store": "^8.2.0",
