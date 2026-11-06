@@ -245,15 +245,21 @@
 }
 
 .copy-block {
-  position: relative;
   min-width: 0;
+}
+
+.copy-toolbar {
+  min-height: 28px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
 }
 
 .setup-step pre {
   max-width: 100%;
   overflow-x: auto;
-  margin: 12px 0;
-  padding: 12px 62px 12px 12px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
   border: 1px solid rgba(224,232,247,.08);
   border-radius: 8px;
   background: rgba(0,0,0,.22);
@@ -263,9 +269,7 @@
 }
 
 .copy-button {
-  position: absolute;
-  top: 17px;
-  right: 6px;
+  position: static;
   min-width: 47px;
   padding: 5px 7px;
   border: 1px solid rgba(224,232,247,.14);
