@@ -837,12 +837,15 @@ async function fetchChartHistory() {
 }
 
 function renderChartData(logs) {
+  const chartWrapper = document.querySelector('.chart-wrapper');
   if (!logs || logs.length === 0) {
     batteryChart.data.labels = [];
     batteryChart.data.datasets = [];
     batteryChart.update();
+    if (chartWrapper) chartWrapper.classList.add('is-empty');
     return;
   }
+  if (chartWrapper) chartWrapper.classList.remove('is-empty');
 
   // Premium color palette with gradient fills
   const colorPool = [
@@ -879,7 +882,7 @@ function renderChartData(logs) {
   const labelSuffix = metricLabelMap[selectedHistoryMetric] || 'Battery %';
   const titleEl = document.getElementById('chartTitle');
   if (titleEl) {
-    titleEl.textContent = `📊 ${selectedHistoryMetric === 'cpu' ? 'CPU History' : selectedHistoryMetric === 'ram' ? 'RAM History' : 'Battery History'}`;
+    titleEl.textContent = `${selectedHistoryMetric === 'cpu' ? 'CPU' : selectedHistoryMetric === 'ram' ? 'Memory' : 'Battery'} history`;
   }
 
   if (selectedHistoryDevice !== 'all') {
