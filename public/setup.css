@@ -1,0 +1,353 @@
+.setup-page {
+  padding-top: 40px;
+}
+
+.page-glow {
+  right: 0;
+  left: auto;
+  width: min(850px, 100vw);
+}
+
+.setup-hero {
+  max-width: 760px;
+  padding: 72px 0 74px;
+}
+
+.setup-hero .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.setup-hero h1 {
+  margin: 22px 0 18px;
+  font-size: clamp(46px, 6vw, 68px);
+}
+
+.setup-hero h1 span {
+  color: #a39bbd;
+}
+
+.setup-hero > p {
+  max-width: 540px;
+  margin-bottom: 25px;
+  color: #a6aebc;
+  font-size: 15px;
+}
+
+.setup-hero .button {
+  margin-top: 3px;
+}
+
+.setup-section {
+  padding: 46px 0 60px;
+  border-top: 1px solid rgba(255,255,255,.07);
+  scroll-margin-top: 22px;
+}
+
+.setup-section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 27px;
+}
+
+.setup-section-heading h2 {
+  margin: 9px 0 6px;
+  font: 600 clamp(28px, 4vw, 38px)/1.15 var(--heading);
+  letter-spacing: -1.3px;
+}
+
+.setup-section-heading p {
+  margin: 0;
+  color: #939cab;
+  font-size: 13px;
+}
+
+.setup-section-heading > .text-link {
+  flex: 0 0 auto;
+  margin-bottom: 4px;
+}
+
+.download-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 13px;
+}
+
+.download-card {
+  min-height: 310px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 19px;
+  border: 1px solid rgba(224, 232, 247, .1);
+  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(20,25,36,.94), rgba(14,17,25,.9));
+  transition: transform .24s ease, border-color .24s ease, box-shadow .24s ease;
+}
+
+.download-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(115,229,206,.24);
+  box-shadow: 0 14px 36px rgba(0,0,0,.2);
+}
+
+.download-card-top {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 19px;
+}
+
+.platform-symbol {
+  width: 39px;
+  height: 39px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(115,229,206,.16);
+  border-radius: 11px;
+  background: rgba(115,229,206,.07);
+  color: var(--mint);
+  font-size: 21px;
+}
+
+.symbol-windows { color: #8dbbff; background: rgba(111,160,255,.08); border-color: rgba(111,160,255,.17); }
+.symbol-linux { color: #c1a8ff; background: rgba(168,149,255,.08); border-color: rgba(168,149,255,.17); }
+.symbol-android { color: #8ee0a4; background: rgba(112,210,137,.08); border-color: rgba(112,210,137,.17); }
+
+.platform-arch {
+  color: #748092;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .9px;
+}
+
+.download-card h3 {
+  margin: 0 0 5px;
+  font: 600 19px var(--heading);
+  letter-spacing: -.4px;
+}
+
+.download-card > p {
+  min-height: 39px;
+  margin: 0 0 17px;
+  color: #929bab;
+  font-size: 11px;
+  line-height: 1.65;
+}
+
+.download-link {
+  width: 100%;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 0 12px;
+  border-radius: 8px;
+  background: var(--mint);
+  color: #101b1a;
+  font-size: 11px;
+  font-weight: 700;
+  transition: filter .2s ease, transform .2s ease;
+}
+
+.download-link:hover {
+  filter: brightness(1.07);
+  transform: translateY(-1px);
+}
+
+.download-link span {
+  font-size: 16px;
+}
+
+.alternate-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 3px 0 8px;
+  color: #aab4c3;
+  font-size: 10px;
+  font-weight: 600;
+  transition: color .18s ease;
+}
+
+.alternate-link:hover {
+  color: var(--mint);
+}
+
+.platform-note {
+  margin-top: auto;
+  padding-top: 11px;
+  color: #818a9a;
+  font-size: 9px;
+  line-height: 1.55;
+}
+
+.availability-note {
+  margin: 16px 0 0;
+  color: #7e8999;
+  font-size: 10px;
+}
+
+.server-section {
+  padding-bottom: 90px;
+}
+
+.setup-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.setup-step {
+  min-width: 0;
+  min-height: 260px;
+  display: flex;
+  gap: 14px;
+  padding: 21px 18px;
+  border: 1px solid rgba(224, 232, 247, .1);
+  border-radius: 12px;
+  background: rgba(255,255,255,.025);
+  transition: border-color .22s ease, transform .22s ease;
+}
+
+.setup-step:hover {
+  transform: translateY(-3px);
+  border-color: rgba(115,229,206,.2);
+}
+
+.setup-step .step-number {
+  position: static;
+  flex: 0 0 auto;
+  color: var(--mint);
+  font-size: 10px;
+}
+
+.setup-step > div {
+  min-width: 0;
+}
+
+.setup-step h3 {
+  margin: -2px 0 8px;
+  font: 600 15px var(--heading);
+}
+
+.setup-step p {
+  margin: 0 0 12px;
+  color: #939cab;
+  font-size: 10px;
+  line-height: 1.7;
+}
+
+.setup-step pre {
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid rgba(224,232,247,.08);
+  border-radius: 8px;
+  background: rgba(0,0,0,.22);
+  color: #cbd4df;
+  font: 9px/1.8 ui-monospace, SFMono-Regular, Menlo, monospace;
+  scrollbar-width: thin;
+}
+
+.setup-step code {
+  color: #b7c5d5;
+  font: 9px ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.setup-step .step-hint {
+  margin-top: 12px;
+}
+
+.setup-step .step-hint code {
+  color: var(--mint);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.setup-step > div > .alternate-link {
+  margin-top: 1px;
+}
+
+@media (max-width: 920px) {
+  .download-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .download-card {
+    min-height: 285px;
+  }
+  .setup-steps {
+    grid-template-columns: 1fr;
+  }
+  .setup-step {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 680px) {
+  .setup-page {
+    padding-top: 17px;
+  }
+  .setup-hero {
+    padding: 58px 0 55px;
+  }
+  .setup-hero h1 {
+    font-size: clamp(43px, 11vw, 60px);
+    letter-spacing: -2.7px;
+  }
+  .setup-hero > p {
+    font-size: 13px;
+  }
+  .setup-section {
+    padding: 36px 0 44px;
+  }
+  .setup-section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .download-grid {
+    gap: 10px;
+  }
+  .download-card {
+    min-height: 300px;
+    padding: 14px;
+  }
+  .download-card > p {
+    min-height: 52px;
+    font-size: 10px;
+  }
+  .setup-step {
+    padding: 17px 14px;
+  }
+}
+
+@media (max-width: 380px) {
+  .download-grid {
+    grid-template-columns: 1fr;
+  }
+  .download-card {
+    min-height: 0;
+  }
+  .download-card > p {
+    min-height: 0;
+  }
+  .platform-note {
+    margin-top: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .download-card:hover,
+  .download-link:hover,
+  .setup-step:hover {
+    transform: none;
+  }
+}
