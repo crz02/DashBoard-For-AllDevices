@@ -417,7 +417,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
 
         # Serve static files from public/
         req_path = path.lstrip("/")
-        if not req_path or req_path == "index.html":
+        if not req_path:
+            file_path = os.path.join(PUBLIC_DIR, "landing.html")
+        elif req_path in ("dashboard", "index.html"):
             file_path = os.path.join(PUBLIC_DIR, "index.html")
         elif req_path in ("signin", "sign-in", "login"):
             file_path = os.path.join(PUBLIC_DIR, "signin.html")

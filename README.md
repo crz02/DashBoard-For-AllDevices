@@ -1,113 +1,78 @@
 # Statuser
 
-Statuser is a self-hosted dashboard that tracks the battery level, CPU, RAM, and temperature of all your devices across macOS, Windows, Linux, iOS, and Android.
+**Your devices. One clear view.** Statuser is a self-hosted dashboard for monitoring battery and system health across your devices. It brings battery level, charging state, CPU, memory, temperature, and device history together in one place.
 
-![Statuser Dashboard Screenshot](docs/screenshot.png) <!-- Update with actual screenshot later -->
+The dashboard runs on a server you control. Connect desktop and mobile apps over your local network, or use a secure tunnel when you need access away from home.
 
-## 🚀 Native Applications
+**Landing page:** [crz02.github.io/DashBoard-For-AllDevices](https://crz02.github.io/DashBoard-For-AllDevices/)
 
-Statuser provides native installable applications for all major platforms. The apps monitor your device in the background and report telemetry to your dashboard.
+## Download Statuser 2.0
 
-### 📱 Statuser Mobile (iOS & Android)
+The latest installers are available on the [Statuser 2.0.0 release page](https://github.com/crz02/DashBoard-For-AllDevices/releases/tag/v2.0.0).
 
-Built with React Native (Expo). Features a mini-dashboard and background sync.
+| Platform | Installer |
+| --- | --- |
+| macOS (Apple Silicon) | [DMG](https://github.com/crz02/DashBoard-For-AllDevices/releases/download/v2.0.0/Statuser-2.0.0-mac-arm64.dmg) · [ZIP](https://github.com/crz02/DashBoard-For-AllDevices/releases/download/v2.0.0/Statuser-2.0.0-mac-arm64.zip) |
+| Windows (x64) | [Setup](https://github.com/crz02/DashBoard-For-AllDevices/releases/download/v2.0.0/Statuser-Setup-2.0.0.exe) · [Portable](https://github.com/crz02/DashBoard-For-AllDevices/releases/download/v2.0.0/Statuser-Portable-2.0.0.exe) · [ZIP](https://github.com/crz02/DashBoard-For-AllDevices/releases/download/v2.0.0/Statuser-2.0.0-win.zip) |
+| Linux (x64) | [AppImage](https://github.com/crz02/DashBoard-For-AllDevices/releases/download/v2.0.0/Statuser-2.0.0-linux-x86_64.AppImage) |
+| Android | [APK](https://github.com/crz02/DashBoard-For-AllDevices/releases/download/v2.0.0/Statuser-2.0.0-android.apk) |
 
-- **iOS**: Uses Background Fetch (Note: iOS may throttle background execution for third party apps).
-- **Android**: Full background sync and hardware monitoring.
+The desktop app is available for macOS, Windows, and Linux. The Android APK can be sideloaded. The iOS app is available to run or build from source with Expo; an iOS App Store installer is not currently published.
 
-**How to build/run:**
-```bash
-cd apps/mobile
-npm install
-npx expo start
-```
+Windows packages are unsigned and may show a publisher warning. The macOS package is built for Apple Silicon and is not signed or notarized.
 
-### 💻 Statuser Desktop (macOS, Windows, Linux)
+## Quick start
 
-Built with Electron. Runs silently in your system tray/menu bar and monitors deep hardware metrics (Battery Health, CPU Usage, RAM Usage, Temperature).
+### 1. Start the dashboard server
 
-**How to build/run:**
-```bash
-cd apps/desktop
-npm install
-npm run dev
-
-# Package for your platform
-npm run package
-```
-
-### Download Statuser 2.0
-
-Installers are published on the [GitHub Releases page](https://github.com/crz02/DashBoard-For-AllDevices/releases):
-
-- **macOS**: `.dmg` installer and `.zip` archive
-- **Windows**: NSIS `.exe` installer, portable `.exe`, and `.zip`
-- **Linux**: `.AppImage` (runs on common Linux distributions without a package manager)
-- **Android**: signed `.apk` for sideloading
-
-To publish the `v2.0.0` release, configure these repository Actions secrets with
-the Android upload keystore used for signing the APK: `ANDROID_KEYSTORE_BASE64`,
-`ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, and `ANDROID_KEY_PASSWORD`.
-Then push the `v2.0.0` tag. Keep the keystore and passwords safe; the same key
-must be retained to sign future Android updates.
-
-Windows packages are unsigned unless `WINDOWS_CSC_LINK` and
-`WINDOWS_CSC_KEY_PASSWORD` are configured as Actions secrets, so Windows may
-show a publisher warning.
-For signed and notarized macOS installers, configure `MACOS_CSC_LINK`,
-`MACOS_CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, and
-`APPLE_TEAM_ID` as Actions secrets.
-Only use newly issued signing certificates in these secrets. The old checked-in
-certificate files have been removed from the current source; earlier Git
-history may still contain copies, so revoke/rotate those certificates before
-signing a release. Do not commit certificate or keystore files.
-
----
-
-## 🛠️ Getting Started (The Dashboard Server)
-
-To use the apps, you need to run the Statuser Dashboard Server.
-The desktop installer also includes the server and dashboard files, but Python 3
-must be installed on the computer to start the local server from the desktop app.
-
-### 1. Start the Server
+The server requires Python 3. Clone the repository and start it on a computer that can stay online:
 
 ```bash
-# Clone the repository
 git clone https://github.com/crz02/DashBoard-For-AllDevices.git
 cd DashBoard-For-AllDevices
-
-# Start the server (Requires Python 3)
 ./start_server.sh
 ```
 
-The dashboard will be available at `http://localhost:8080`.
+Open the **landing page** at [http://localhost:8080](http://localhost:8080) or the **dashboard** at [http://localhost:8080/dashboard](http://localhost:8080/dashboard).
 
-### 2. Connect Your Devices
+### 2. Connect your devices
 
-1. Open the Statuser App on your device (Desktop or Mobile).
-2. Go to **Settings**.
-3. Enter your Dashboard URL (e.g., `http://192.168.1.50:8080` for local network).
-4. The device will instantly appear on your dashboard!
+1. Install and open the Statuser app on each device.
+2. In **Settings**, enter the server address, such as `http://192.168.1.50:8080`.
+3. Use the same **User ID** on devices you want to see together.
+4. Open `/dashboard` on the server to view the connected devices.
 
----
+For access outside your local network, follow the [setup guide](SETUP_GUIDE.md) for Cloudflare Tunnels or Tailscale.
 
-## 🌍 Accessing Over the Internet
+## Features
 
-If you want to track your devices while away from home (e.g., tracking your phone while on cellular data), your dashboard server needs a public URL.
+- One view of connected devices, their battery level, charging state, CPU, memory, and temperature.
+- Device and metric history with live dashboard updates.
+- Native desktop apps for macOS, Windows, and Linux, plus a React Native mobile app for iOS and Android.
+- Self-hosted server using Python and SQLite.
+- Optional multi-user views, with devices grouped by User ID.
 
-We provide built-in support for **Cloudflare Tunnels** (Free, Secure, No Port Forwarding required).
+## Build from source
 
-See the [Setup Guide](SETUP_GUIDE.md) for full instructions on making your dashboard public.
+### Desktop
 
----
+```bash
+cd apps/desktop
+npm ci
+npm run dev
+```
 
-## 🔒 Multi-User Support
+Package for the current platform with `npm run package`, or use `npm run package:mac`, `npm run package:win`, or `npm run package:linux`.
 
-Statuser supports multiple users on a single dashboard instance. 
-In your App Settings, configure a **User ID**. Only devices sharing the same User ID will see each other in the dashboard.
+### Mobile
 
----
+```bash
+cd apps/mobile
+npm ci
+npx expo start
+```
+
+See the [setup guide](SETUP_GUIDE.md) for server networking, public access, and troubleshooting.
 
 ## License
 
