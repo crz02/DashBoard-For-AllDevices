@@ -113,10 +113,8 @@ h1 span, .section-intro h2 span { color: #9e9ab8; }
 .art-node { position: absolute; z-index: 2; padding: 7px 11px; border: 1px solid rgba(212,222,238,.12); border-radius: 8px; background: #171c27; color: #c7d4d7; font: 600 10px var(--heading); box-shadow: 0 9px 28px rgba(0,0,0,.25); }
 .node-one { top: 54px; left: 24%; }.node-two { right: 17%; top: 48%; color: #c5baff; }.node-three { bottom: 43px; left: 29%; color: #b6c4ff; }
 .feature-symbol { height: 120px; margin: -4px 0 15px; display: flex; align-items: flex-end; gap: 9px; padding: 14px 19px; border-bottom: 1px solid rgba(255,255,255,.07); }
-.symbol-history { position: relative; align-items: center; justify-content: space-around; background: linear-gradient(0deg,rgba(115,229,206,.025),transparent); }
-.symbol-history span { width: 17px; border-radius: 4px 4px 0 0; background: linear-gradient(180deg,rgba(115,229,206,.72),rgba(115,229,206,.15)); }
-.symbol-history span:nth-child(1){height:30%}.symbol-history span:nth-child(2){height:47%}.symbol-history span:nth-child(3){height:39%}.symbol-history span:nth-child(4){height:66%}.symbol-history span:nth-child(5){height:52%}.symbol-history span:nth-child(6){height:83%}.symbol-history span:nth-child(7){height:72%}
-.symbol-history i { position: absolute; left: 7%; right: 7%; top: 32px; height: 42px; border-top: 2px solid var(--mint); transform: skewY(-12deg); opacity: .78; }
+.symbol-history { position: relative; align-items: center; justify-content: center; background: linear-gradient(0deg,rgba(115,229,206,.025),transparent); }
+.symbol-history svg { width: 100%; height: 100%; overflow: visible; }
 .symbol-home { position: relative; justify-content: center; align-items: center; border: 1px solid rgba(168,149,255,.12); border-radius: 9px; background: radial-gradient(circle,rgba(168,149,255,.11),transparent 65%); }
 .symbol-home svg { position: relative; z-index: 1; width: 82px; height: 82px; overflow: visible; filter: drop-shadow(0 8px 18px rgba(168,149,255,.13)); }
 .symbol-home i { position: absolute; width: 90px; height: 90px; border: 1px solid rgba(168,149,255,.15); border-radius: 50%; }
@@ -266,15 +264,19 @@ h1 span, .section-intro h2 span { color: #9e9ab8; }
 .art-device {
   animation: chip-hover 5s ease-in-out infinite;
 }
-.symbol-history span {
-  transform-origin: center bottom;
-  animation: bars-breathe 2.6s ease-in-out infinite alternate;
+.history-line {
+  stroke-dasharray: 420;
+  stroke-dashoffset: 420;
+  animation: chart-draw 2s ease-out .25s forwards;
 }
-.symbol-history span:nth-child(2n) { animation-delay: -.8s; }
-.symbol-history span:nth-child(3n) { animation-delay: -1.6s; }
-@keyframes bars-breathe {
-  from { transform: scaleY(.78); }
-  to { transform: scaleY(1); }
+.history-point {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: history-point-pulse 2.4s ease-in-out 2.3s infinite;
+}
+@keyframes history-point-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .58; transform: scale(.76); }
 }
 .download-banner {
   transition: border-color .3s ease, box-shadow .3s ease;
@@ -303,7 +305,8 @@ h1 span, .section-intro h2 span { color: #9e9ab8; }
   .preview-chart svg path:nth-of-type(2),
   .art-ring,
   .art-device,
-  .symbol-history span,
+  .history-line,
+  .history-point,
   .download-glow {
     animation: none !important;
   }
