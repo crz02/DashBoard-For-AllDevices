@@ -73,7 +73,7 @@
 
     if (autoRedirect) {
       toast(`Welcome, ${name}!`, 'ok');
-      setTimeout(() => { window.location.href = '/'; }, 900);
+      setTimeout(() => { window.location.href = '/dashboard'; }, 900);
     }
   }
 
@@ -147,7 +147,7 @@
         'To enable sign-in, add your Clerk publishable key to the <code>.env</code> file:<br>' +
         '<code>CLERK_PUBLISHABLE_KEY=pk_test_...</code><br><br>' +
         'The dashboard works without authentication — ' +
-        '<a href="/" style="color:var(--blue);text-decoration:underline;">← Go to Dashboard</a>'
+        '<a href="/dashboard" style="color:var(--blue);text-decoration:underline;">← Go to Dashboard</a>'
       );
       return;
     }
@@ -300,7 +300,7 @@
         <h3 style="font-size:1.15rem;font-weight:700;color:var(--text-main);margin-bottom:6px;">${escapeHtml(name)}</h3>
         <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:28px;">${escapeHtml(email)}</p>
         <div style="display:flex;gap:12px;justify-content:center;">
-          <a href="/" class="btn" style="flex:1;justify-content:center;background:var(--blue-btn);color:#fff;border-color:var(--blue-btn);font-weight:600;padding:10px 16px;border-radius:8px;">Go to Dashboard</a>
+          <a href="/dashboard" class="btn" style="flex:1;justify-content:center;background:var(--blue-btn);color:#fff;border-color:var(--blue-btn);font-weight:600;padding:10px 16px;border-radius:8px;">Go to Dashboard</a>
           <button id="signinSignOutBtn" class="btn" style="flex:1;justify-content:center;color:var(--red);border-color:rgba(248,81,73,0.35);padding:10px 16px;border-radius:8px;">Sign Out</button>
         </div>
       </div>

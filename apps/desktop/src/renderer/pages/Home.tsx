@@ -103,7 +103,8 @@ export default function Home({ onToast }: HomeProps) {
   }
 
   const handleOpenDashboard = () => {
-    const url = config?.dashboardUrl || 'http://localhost:8080'
+    const baseUrl = config?.dashboardUrl || 'http://localhost:8080'
+    const url = `${baseUrl.replace(/\/+$/, '').replace(/\/dashboard$/, '')}/dashboard`
     window.api.openExternal(url)
   }
 

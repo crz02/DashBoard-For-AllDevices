@@ -17,6 +17,8 @@ cd DashBoard-For-AllDevices
 ./start_server.sh
 ```
 
+The landing page opens at `http://localhost:8080`; open the dashboard at `http://localhost:8080/dashboard`.
+
 ### Step 2: Find Your Local IP Address
 On the computer running the server, find its local network IP address (e.g., `192.168.1.50`).
 - **macOS/Linux**: Run `ifconfig` or `ip a`

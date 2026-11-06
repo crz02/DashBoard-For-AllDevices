@@ -353,8 +353,9 @@ async function updateTrayMenu() {
     {
       label: 'Open Web Dashboard in Browser',
       click: () => {
-        const url = store.get('dashboardUrl') as string
-        shell.openExternal(url || 'http://localhost:8080')
+        const baseUrl = (store.get('dashboardUrl') as string) || 'http://localhost:8080'
+        const url = `${baseUrl.replace(/\/+$/, '').replace(/\/dashboard$/, '')}/dashboard`
+        shell.openExternal(url)
       }
     },
     { type: 'separator' },
