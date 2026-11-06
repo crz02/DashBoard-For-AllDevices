@@ -1,6 +1,6 @@
 appId: com.statuser.desktop
 productName: Statuser
-copyright: Copyright © 2024 Statuser
+copyright: Copyright © 2026 Statuser
 
 directories:
   output: release
@@ -9,6 +9,12 @@ directories:
 files:
   - dist/**/*
   - resources/**/*
+
+extraResources:
+  - from: ../../server
+    to: server
+  - from: ../../public
+    to: public
 
 mac:
   icon: resources/icon.icns
@@ -21,8 +27,6 @@ mac:
 win:
   icon: resources/icon.ico
   publisherName: "Statuser"
-  certificateFile: resources/cert.pfx
-  certificatePassword: "statuser"
   requestedExecutionLevel: asInvoker
   target:
     - target: nsis
@@ -44,6 +48,5 @@ portable:
 linux:
   target:
     - AppImage
-    - deb
   category: Utility
   artifactName: "${productName}-${version}-${os}-${arch}.${ext}"

@@ -12,8 +12,8 @@ If you only want to monitor devices while they are connected to your home Wi-Fi 
 Run this on a computer that stays on at home (like a Mac, PC, or Raspberry Pi).
 
 ```bash
-git clone https://github.com/yourusername/Statuser.git
-cd Statuser
+git clone https://github.com/crz02/DashBoard-For-AllDevices.git
+cd DashBoard-For-AllDevices
 ./start_server.sh
 ```
 
