@@ -47,9 +47,13 @@ h1 span, .section-intro h2 span { color: #9e9ab8; }
 .button-primary span { font-size: 16px; }
 .button-secondary { border: 1px solid var(--line); color: #d3d8e1; background: rgba(255,255,255,.025); }
 .button-secondary span { color: var(--mint); font-size: 16px; }
-.platform-note { display: flex; align-items: center; gap: 12px; margin-top: 29px; color: #778191; font-size: 11px; }
-.platform-icons { display: flex; gap: 5px; }
-.platform-icons span { width: 22px; height: 22px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 6px; color: #aab4c3; font-size: 12px; }
+.platform-note { display: flex; align-items: center; gap: 7px; margin-top: 25px; color: #778191; font-size: 10px; }
+.platform-note-label { margin-right: 3px; color: #7f8998; font-size: 9px; font-weight: 700; letter-spacing: .55px; text-transform: uppercase; }
+.platform-download { min-height: 30px; display: inline-flex; align-items: center; gap: 5px; padding: 0 8px; border: 1px solid rgba(224,232,247,.1); border-radius: 7px; background: rgba(255,255,255,.025); color: #b6c0ce; font-size: 9px; font-weight: 600; white-space: nowrap; transition: color .18s ease, border-color .18s ease, background .18s ease, transform .18s ease; }
+.platform-download span { color: #aab4c3; font-size: 12px; }
+.platform-download:hover { transform: translateY(-2px); border-color: rgba(115,229,206,.38); background: rgba(115,229,206,.07); color: var(--mint); }
+.platform-download:hover span { color: var(--mint); }
+.platform-download:focus-visible { outline: 2px solid var(--mint); outline-offset: 3px; }
 .preview-wrap { position: relative; min-width: 0; padding: 35px 0; }
 .preview-orbit { position: absolute; top: 50%; left: 50%; width: 560px; height: 560px; border: 1px solid rgba(157,152,229,.07); border-radius: 50%; transform: translate(-50%,-50%); pointer-events: none; }
 .orbit-two { width: 440px; height: 440px; border-color: rgba(115,229,206,.08); }
@@ -156,7 +160,9 @@ h1 span, .section-intro h2 span { color: #9e9ab8; }
   h1 { margin: 19px 0 16px; font-size: clamp(48px,12vw,64px); letter-spacing: -3px; }
   .hero-lede { max-width: 420px; font-size: 14px; }
   .hero-actions { gap: 9px; }.button { min-height: 43px; padding: 0 13px; gap: 10px; font-size: 11px; }
-  .platform-note { margin-top: 20px; }
+  .platform-note { flex-wrap: wrap; gap: 6px; margin-top: 20px; }
+  .platform-note-label { flex: 0 0 100%; }
+  .platform-download { min-height: 29px; padding: 0 7px; }
   .preview-wrap { width: 100%; margin-top: 17px; padding: 22px 0; transform: none; }
   .dashboard-preview { max-width: 100%; transform: none; }.preview-orbit { width: 420px; height: 420px; }.orbit-two { width: 330px; height: 330px; }
   .preview-topbar { height: 43px; padding: 0 11px; }.preview-heading { padding: 15px 12px 10px; }.preview-heading h2 { font-size: 14px; }
