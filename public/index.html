@@ -35,7 +35,7 @@
       <div class="topbar-actions">
         <label class="toggle-control" title="Toggle automatic battery changes for testing">
           <input type="checkbox" id="simCheckbox">
-          <span class="toggle-track"></span>
+          <span class="toggle-track" aria-hidden="true"></span>
           <span class="toggle-text">Simulator</span>
         </label>
 
@@ -67,6 +67,15 @@
       </div>
     </header>
 
+    <section class="dashboard-intro" aria-labelledby="dashboardTitle">
+      <div>
+        <span class="dashboard-eyebrow">PERSONAL DEVICE FLEET</span>
+        <h2 id="dashboardTitle">Everything in one place.</h2>
+        <p>Battery and system health, across the devices you use every day.</p>
+      </div>
+      <div class="dashboard-live-badge"><span class="dot"></span> Live monitoring</div>
+    </section>
+
     <!-- Quick Stats Bar -->
     <section class="metrics-row" aria-label="System Metrics">
       <div class="metric-box">
@@ -92,13 +101,21 @@
 
       <div class="metric-box">
         <div class="metric-icon red">🔻</div>
-        <span class="metric-title">Low Battery (&lt;20%)</span>
+        <span class="metric-title">Low Battery (&le;20%)</span>
         <span class="metric-num" id="lowBatteryCount">0</span>
         <span class="metric-sub" id="lowBatteryAlert">All ok</span>
       </div>
     </section>
 
     <!-- Filter & View Controls -->
+    <div class="fleet-section-heading">
+      <div>
+        <h2>Your devices</h2>
+        <span class="fleet-count" id="deviceResultsCount">0 devices</span>
+      </div>
+      <span class="sync-time" id="lastSyncTime">Waiting for device data</span>
+    </div>
+
     <div class="toolbar">
       <div class="toolbar-left">
         <div class="search-box">
@@ -106,18 +123,17 @@
             <circle cx="11" cy="11" r="8"></circle>
             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
           </svg>
-          <input type="text" class="search-input" id="deviceSearchInput" placeholder="Search devices..." autocomplete="off">
+          <input type="search" class="search-input" id="deviceSearchInput" placeholder="Search devices..." aria-label="Search devices by name, platform, or model" autocomplete="off">
         </div>
-        <div class="filter-group">
-          <button class="filter-btn active" data-filter="all">All</button>
-          <button class="filter-btn" data-filter="macos">macOS</button>
-          <button class="filter-btn" data-filter="windows">Windows</button>
-          <button class="filter-btn" data-filter="ios">iOS</button>
-          <button class="filter-btn" data-filter="android">Android</button>
-          <button class="filter-btn" data-filter="linux">Linux</button>
+        <div class="filter-group" role="group" aria-label="Filter devices by platform">
+          <button class="filter-btn active" data-filter="all" aria-pressed="true">All</button>
+          <button class="filter-btn" data-filter="macos" aria-pressed="false">macOS</button>
+          <button class="filter-btn" data-filter="windows" aria-pressed="false">Windows</button>
+          <button class="filter-btn" data-filter="ios" aria-pressed="false">iOS</button>
+          <button class="filter-btn" data-filter="android" aria-pressed="false">Android</button>
+          <button class="filter-btn" data-filter="linux" aria-pressed="false">Linux</button>
         </div>
       </div>
-      <div class="sync-time" id="lastSyncTime">Last updated: Just now</div>
     </div>
 
     <!-- Main Device Cards -->
