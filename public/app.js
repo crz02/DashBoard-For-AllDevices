@@ -217,9 +217,12 @@ function setupUIEventListeners() {
   // Filter buttons
   document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
       const target = e.currentTarget;
-      target.classList.add('active');
+      document.querySelectorAll('.filter-btn').forEach(button => {
+        const selected = button === target;
+        button.classList.toggle('active', selected);
+        button.setAttribute('aria-pressed', String(selected));
+      });
       activeFilter = target.getAttribute('data-filter');
       renderDeviceGrid();
     });
@@ -470,14 +473,47 @@ function renderDeviceGrid() {
     return matchesFilter && matchesSearch;
   });
 
+  const countEl = document.getElementById('deviceResultsCount');
+  if (countEl) {
+    const count = filtered.length;
+    countEl.textContent = `${count} ${count === 1 ? 'device' : 'devices'}${count !== devices.length ? ` · ${devices.length} total` : ''}`;
+  }
+
   if (filtered.length === 0) {
-    grid.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-state-icon">📡</div>
-        <div class="empty-state-title">${searchQuery ? 'No matching devices' : 'No devices connected'}</div>
-        <div class="empty-state-desc">${searchQuery ? 'Try adjusting your search query or filter' : 'Click "+ Connect Device" to add your first device and start monitoring.'}</div>
-      </div>
-    `;
+    if (devices.length === 0) {
+      grid.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon" aria-hidden="true">⌁</div>
+          <div class="empty-state-kicker">YOUR FLEET STARTS HERE</div>
+          <div class="empty-state-title">Connect your first device</div>
+          <div class="empty-state-desc">Choose its platform to get a quick setup command, then watch its status appear here.</div>
+          <button class="btn btn-primary empty-state-action" id="emptyConnectBtn" type="button">Connect a device <span aria-hidden="true">→</span></button>
+        </div>
+      `;
+      grid.querySelector('#emptyConnectBtn').addEventListener('click', () => {
+        document.getElementById('openAddModalBtn').click();
+      });
+    } else {
+      grid.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon" aria-hidden="true">⌕</div>
+          <div class="empty-state-title">No matching devices</div>
+          <div class="empty-state-desc">Try another search or clear the current platform filter.</div>
+          <button class="btn btn-default empty-state-action" id="clearDeviceFiltersBtn" type="button">Clear filters</button>
+        </div>
+      `;
+      grid.querySelector('#clearDeviceFiltersBtn').addEventListener('click', () => {
+        searchQuery = '';
+        activeFilter = 'all';
+        document.getElementById('deviceSearchInput').value = '';
+        document.querySelectorAll('.filter-btn').forEach(button => {
+          const selected = button.getAttribute('data-filter') === 'all';
+          button.classList.toggle('active', selected);
+          button.setAttribute('aria-pressed', String(selected));
+        });
+        renderDeviceGrid();
+      });
+    }
     return;
   }
 
