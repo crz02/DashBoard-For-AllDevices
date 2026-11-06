@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="landing.css">
   <link rel="stylesheet" href="setup.css">
   <script src="landing.js" defer></script>
+  <script src="setup.js" defer></script>
 </head>
 <body>
   <div class="page-glow" aria-hidden="true"></div>
@@ -101,23 +102,36 @@
         <article class="setup-step" data-reveal>
           <span class="step-number">01</span>
           <div><h3>Start the server</h3><p>On a computer that can stay online, install Python 3, clone the project, and run:</p>
-            <pre><code>git clone https://github.com/crz02/DashBoard-For-AllDevices.git
+            <div class="copy-block">
+              <pre id="server-setup-command"><code>git clone https://github.com/crz02/DashBoard-For-AllDevices.git
 cd DashBoard-For-AllDevices
 ./start_server.sh</code></pre>
+              <button class="copy-button" type="button" data-copy-target="server-setup-command">Copy</button>
+              <span class="copy-status" aria-live="polite"></span>
+            </div>
             <p class="step-hint">Open the dashboard at <code>http://localhost:8080/dashboard</code>.</p>
           </div>
         </article>
         <article class="setup-step" data-reveal>
           <span class="step-number">02</span>
           <div><h3>Connect your devices</h3><p>Install and open Statuser, then enter your server address in the app’s Settings. On your home Wi-Fi, use your server’s local IP, for example:</p>
-            <pre><code>http://192.168.1.50:8080</code></pre>
+            <div class="copy-block">
+              <pre id="server-address"><code>http://192.168.1.50:8080</code></pre>
+              <button class="copy-button" type="button" data-copy-target="server-address">Copy</button>
+              <span class="copy-status" aria-live="polite"></span>
+            </div>
             <p class="step-hint">Use the same User ID on devices you want grouped together.</p>
           </div>
         </article>
         <article class="setup-step" data-reveal>
           <span class="step-number">03</span>
-          <div><h3>Connect from anywhere</h3><p>To report over cellular or another network, set up a secure tunnel to your server. Keep remote access limited to a service you trust.</p>
-            <a class="alternate-link" href="https://github.com/crz02/DashBoard-For-AllDevices/blob/main/SETUP_GUIDE.md#2-public-access-setup-recommended" target="_blank" rel="noreferrer">Tunnel setup instructions <span aria-hidden="true">↗</span></a>
+          <div><h3>Connect from anywhere</h3><p>Keep the server running. In a second terminal, from the project folder, start a secure Cloudflare Tunnel:</p>
+            <div class="copy-block">
+              <pre id="tunnel-start-command"><code>./scripts/start_public_tunnel.sh</code></pre>
+              <button class="copy-button" type="button" data-copy-target="tunnel-start-command">Copy</button>
+              <span class="copy-status" aria-live="polite"></span>
+            </div>
+            <p class="step-hint">Copy the HTTPS URL it prints into your apps’ Dashboard URL setting. The quick tunnel is temporary and stops when you close it.</p>
           </div>
         </article>
       </div>

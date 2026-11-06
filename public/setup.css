@@ -244,17 +244,69 @@
   line-height: 1.7;
 }
 
+.copy-block {
+  position: relative;
+  min-width: 0;
+}
+
 .setup-step pre {
   max-width: 100%;
   overflow-x: auto;
   margin: 12px 0;
-  padding: 12px;
+  padding: 12px 62px 12px 12px;
   border: 1px solid rgba(224,232,247,.08);
   border-radius: 8px;
   background: rgba(0,0,0,.22);
   color: #cbd4df;
   font: 9px/1.8 ui-monospace, SFMono-Regular, Menlo, monospace;
   scrollbar-width: thin;
+}
+
+.copy-button {
+  position: absolute;
+  top: 17px;
+  right: 6px;
+  min-width: 47px;
+  padding: 5px 7px;
+  border: 1px solid rgba(224,232,247,.14);
+  border-radius: 6px;
+  background: #202633;
+  color: #cbd4df;
+  font: 600 9px var(--body);
+  cursor: pointer;
+  transition: color .18s ease, border-color .18s ease, background .18s ease;
+}
+
+.copy-button:hover,
+.copy-button:focus-visible {
+  border-color: rgba(115,229,206,.45);
+  background: rgba(115,229,206,.1);
+  color: var(--mint);
+}
+
+.copy-button:focus-visible {
+  outline: 2px solid var(--mint);
+  outline-offset: 2px;
+}
+
+.copy-button[data-copy-state="copied"] {
+  border-color: rgba(115,229,206,.32);
+  color: var(--mint);
+}
+
+.copy-button[data-copy-state="error"] {
+  border-color: rgba(255,132,132,.35);
+  color: #ff9a9a;
+}
+
+.copy-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
 }
 
 .setup-step code {
