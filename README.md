@@ -4,7 +4,7 @@
 
 The dashboard runs on a server you control. Connect desktop and mobile apps over your local network, or use a secure tunnel when you need access away from home.
 
-**Landing page:** [crz02.github.io/DashBoard-For-AllDevices](https://crz02.github.io/DashBoard-For-AllDevices/)
+**Landing page:** [crz02.github.io/Statuser](https://crz02.github.io/Statuser/)
 
 ## Download Statuser 2.0
 
