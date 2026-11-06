@@ -22,7 +22,11 @@
     <!-- Top Navigation Bar -->
     <header class="topbar">
       <div class="topbar-brand">
-        <span class="brand-icon">⚡</span>
+        <span class="brand-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 2 4.5 13h6L10 22l9.5-12h-6L13 2Z"></path>
+          </svg>
+        </span>
         <div class="brand-info">
           <h1>Statuser</h1>
           <span class="sync-status" id="connectionStatus">
@@ -69,9 +73,9 @@
 
     <section class="dashboard-intro" aria-labelledby="dashboardTitle">
       <div>
-        <span class="dashboard-eyebrow">PERSONAL DEVICE FLEET</span>
-        <h2 id="dashboardTitle">Everything in one place.</h2>
-        <p>Battery and system health, across the devices you use every day.</p>
+        <span class="dashboard-eyebrow">YOUR DEVICE FLEET</span>
+        <h2 id="dashboardTitle">Your devices, at a glance.</h2>
+        <p>Battery and system health, all in one clear view.</p>
       </div>
       <div class="dashboard-live-badge"><span class="dot"></span> Live monitoring</div>
     </section>
@@ -79,31 +83,39 @@
     <!-- Quick Stats Bar -->
     <section class="metrics-row" aria-label="System Metrics">
       <div class="metric-box">
-        <div class="metric-icon blue">📱</div>
-        <span class="metric-title">Total Devices</span>
+        <div class="metric-icon blue" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2.5" width="14" height="19" rx="2.5"></rect><path d="M10 18.5h4"></path></svg>
+        </div>
+        <span class="metric-title">Devices monitored</span>
         <span class="metric-num" id="totalDevicesCount">0</span>
         <span class="metric-sub" id="onlineDevicesBadge">0 online</span>
       </div>
 
       <div class="metric-box">
-        <div class="metric-icon cyan">🔋</div>
-        <span class="metric-title">Fleet Average</span>
+        <div class="metric-icon cyan" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="17" height="10" rx="2"></rect><path d="M22 10v4M7 10v4m4-4v4"></path></svg>
+        </div>
+        <span class="metric-title">Average battery</span>
         <span class="metric-num" id="avgBatteryLevel">--%</span>
         <span class="metric-sub" id="avgBatteryTrend">Steady</span>
       </div>
 
       <div class="metric-box">
-        <div class="metric-icon green">⚡</div>
-        <span class="metric-title">Charging</span>
+        <div class="metric-icon green" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 10-13h-7l1-7Z"></path></svg>
+        </div>
+        <span class="metric-title">Charging now</span>
         <span class="metric-num" id="chargingCount">0</span>
         <span class="metric-sub" id="chargingPill">AC connected</span>
       </div>
 
       <div class="metric-box">
-        <div class="metric-icon red">🔻</div>
-        <span class="metric-title">Low Battery (&le;20%)</span>
+        <div class="metric-icon red" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2.8 19a1.4 1.4 0 0 0 1.2 2h16a1.4 1.4 0 0 0 1.2-2L12 3Z"></path><path d="M12 9v4m0 3h.01"></path></svg>
+        </div>
+        <span class="metric-title">Low battery</span>
         <span class="metric-num" id="lowBatteryCount">0</span>
-        <span class="metric-sub" id="lowBatteryAlert">All ok</span>
+        <span class="metric-sub" id="lowBatteryAlert">Below 20%</span>
       </div>
     </section>
 
@@ -145,7 +157,7 @@
     <section class="chart-panel">
       <div class="chart-header">
         <div>
-          <h2 id="chartTitle">📊 Battery History</h2>
+          <h2 id="chartTitle">Battery history</h2>
           <p class="section-desc">Historical trends across your fleet</p>
         </div>
         <div class="chart-actions">
@@ -168,6 +180,11 @@
       </div>
       <div class="chart-wrapper">
         <canvas id="batteryHistoryChart"></canvas>
+        <div class="chart-empty-state" aria-live="polite">
+          <span class="chart-empty-icon" aria-hidden="true">⌁</span>
+          <strong>No history yet</strong>
+          <span>Connect a device to start building your battery trends.</span>
+        </div>
       </div>
     </section>
 
