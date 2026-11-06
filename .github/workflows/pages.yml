@@ -10,6 +10,7 @@ on:
       - "public/landing.js"
       - "public/setup.html"
       - "public/setup.css"
+      - "public/setup.js"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -43,6 +44,7 @@ jobs:
           cp public/landing.js site/landing.js
           cp public/setup.html site/setup.html
           cp public/setup.css site/setup.css
+          cp public/setup.js site/setup.js
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
