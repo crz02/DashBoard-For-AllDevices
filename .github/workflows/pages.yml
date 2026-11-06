@@ -7,6 +7,9 @@ on:
     paths:
       - "public/landing.html"
       - "public/landing.css"
+      - "public/landing.js"
+      - "public/setup.html"
+      - "public/setup.css"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -37,6 +40,9 @@ jobs:
           mkdir site
           cp public/landing.html site/index.html
           cp public/landing.css site/landing.css
+          cp public/landing.js site/landing.js
+          cp public/setup.html site/setup.html
+          cp public/setup.css site/setup.css
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
