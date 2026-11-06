@@ -22,6 +22,8 @@ public/tunnel_url.json
 
 # SQLite database local state
 server/dashboard.db
+server/dashboard.db-shm
+server/dashboard.db-wal
 
 # Dependencies & Build Outputs
 node_modules/
