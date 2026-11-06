@@ -27,12 +27,12 @@ import {
   MD3Card,
   MD3Button,
   MD3Badge,
-  MD3ListItem,
   MD3SectionHeader,
   MD3Stat,
   MD3Progress,
   MD3,
 } from '../../components/AndroidUI';
+import { DetailRow, StatusChip } from '../../components/DashboardWidgets';
 
 // ─── Shared Logic Hook ────────────────────────────────────────────────────────
 function useDashboard() {
@@ -226,24 +226,26 @@ function AndroidHomeScreen() {
         <View style={aStyles.sectionWrap}>
           <MD3SectionHeader label="System Hardware" />
           <MD3Card variant="elevated">
-            <MD3ListItem
+            <DetailRow
               icon="hardware-chip-outline"
               iconColor={MD3.colors.primary}
               title="Device Model"
-              subtitle={stats.model}
+              value={stats.model}
             />
-            <MD3ListItem
+            <View style={aStyles.separator} />
+            <DetailRow
               icon="logo-android"
               iconColor={MD3.colors.success}
               title="Operating System"
-              subtitle={`Android ${Device.osVersion || ''}`}
+              value={`Android ${Device.osVersion || ''}`}
             />
-            <MD3ListItem
+            <View style={aStyles.separator} />
+            <DetailRow
               icon="shield-checkmark-outline"
               iconColor={MD3.colors.success}
               title="Battery Health"
-              subtitle={`${stats.battery_health} Capacity`}
-              divider={false}
+              value={`${stats.battery_health} Capacity`}
+              last
             />
           </MD3Card>
         </View>
@@ -252,23 +254,24 @@ function AndroidHomeScreen() {
         <View style={aStyles.sectionWrap}>
           <MD3SectionHeader label="Telemetry Uplink" />
           <MD3Card variant="elevated">
-            <MD3ListItem
+            <DetailRow
               icon="wifi-outline"
               iconColor={statusColor}
               title="Dashboard Server"
-              subtitle={serverUrl || 'Not configured — go to Settings'}
-              trailing={<MD3Badge label={statusLabel} color={statusColor} />}
+              value={serverUrl || 'Not configured — go to Settings'}
+              trailing={<StatusChip label={statusLabel} color={statusColor} icon="wifi-outline" />}
             />
-            <MD3ListItem
+            <View style={aStyles.separator} />
+            <DetailRow
               icon="time-outline"
               iconColor={MD3.colors.onSurfaceVariant}
               title="Last Synced"
-              subtitle={
+              value={
                 lastReportedTime
                   ? lastReportedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
                   : 'Awaiting first sync'
               }
-              divider={false}
+              last
             />
           </MD3Card>
         </View>
@@ -392,58 +395,58 @@ function IOSHomeScreen() {
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionHeaderTitle}>SYSTEM HARDWARE SENSORS</Text>
           <LiquidGlassCard style={styles.insetCardGroup} contentStyle={{ padding: 0 }} intensity={70}>
-            <View style={styles.insetItem}>
-              <View style={styles.itemIconWrap}><Ionicons name="hardware-chip-outline" size={18} color="#818cf8" /></View>
-              <View style={styles.itemContent}>
-                <Text style={styles.itemTitle}>Device Model</Text>
-                <Text style={styles.itemValue}>{stats.model}</Text>
-              </View>
-            </View>
+            <DetailRow
+              icon="hardware-chip-outline"
+              iconColor="#818cf8"
+              title="Device Model"
+              value={stats.model}
+            />
             <View style={styles.separator} />
-            <View style={styles.insetItem}>
-              <View style={styles.itemIconWrap}><Ionicons name="logo-apple" size={18} color="#c084fc" /></View>
-              <View style={styles.itemContent}>
-                <Text style={styles.itemTitle}>Operating Platform</Text>
-                <Text style={styles.itemValue}>{platformName}</Text>
-              </View>
-            </View>
+            <DetailRow
+              icon="logo-apple"
+              iconColor="#c084fc"
+              title="Operating Platform"
+              value={platformName}
+            />
             <View style={styles.separator} />
-            <View style={styles.insetItem}>
-              <View style={styles.itemIconWrap}><Ionicons name="shield-checkmark-outline" size={18} color="#34d399" /></View>
-              <View style={styles.itemContent}>
-                <Text style={styles.itemTitle}>Battery Health</Text>
-                <Text style={styles.itemValue}>{stats.battery_health} Capacity</Text>
-              </View>
-            </View>
+            <DetailRow
+              icon="shield-checkmark-outline"
+              iconColor="#34d399"
+              title="Battery Health"
+              value={`${stats.battery_health} Capacity`}
+              last
+            />
           </LiquidGlassCard>
         </View>
 
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionHeaderTitle}>TELEMETRY UPLINK STATUS</Text>
           <LiquidGlassCard style={styles.insetCardGroup} contentStyle={{ padding: 0 }} intensity={70}>
-            <View style={styles.insetItem}>
-              <View style={[styles.statusDot, { backgroundColor: serverStatus === 'connected' ? '#10b981' : serverStatus === 'unconfigured' ? '#fbbf24' : '#ef4444' }]} />
-              <View style={styles.itemContent}>
-                <Text style={styles.itemTitle}>Dashboard Server</Text>
-                <Text style={styles.itemValue} numberOfLines={1}>{serverUrl || 'Not configured (Tap Settings)'}</Text>
-              </View>
-              <LiquidGlassBadge
-                label={serverStatus === 'connected' ? 'Connected' : serverStatus === 'unconfigured' ? 'Setup' : 'Offline'}
-                color={serverStatus === 'connected' ? '#34d399' : serverStatus === 'unconfigured' ? '#fbbf24' : '#f87171'}
-              />
-            </View>
+            <DetailRow
+              icon="wifi-outline"
+              iconColor={serverStatus === 'connected' ? '#10b981' : serverStatus === 'unconfigured' ? '#fbbf24' : '#ef4444'}
+              title="Dashboard Server"
+              value={serverUrl || 'Not configured (Tap Settings)'}
+              trailing={
+                <StatusChip
+                  label={serverStatus === 'connected' ? 'Connected' : serverStatus === 'unconfigured' ? 'Setup' : 'Offline'}
+                  color={serverStatus === 'connected' ? '#34d399' : serverStatus === 'unconfigured' ? '#fbbf24' : '#f87171'}
+                  icon="wifi-outline"
+                />
+              }
+            />
             <View style={styles.separator} />
-            <View style={styles.insetItem}>
-              <View style={styles.itemIconWrap}><Ionicons name="time-outline" size={18} color="#94a3b8" /></View>
-              <View style={styles.itemContent}>
-                <Text style={styles.itemTitle}>Last Telemetry Synced</Text>
-                <Text style={styles.itemValue}>
-                  {lastReportedTime
-                    ? lastReportedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-                    : 'Awaiting first telemetry sync'}
-                </Text>
-              </View>
-            </View>
+            <DetailRow
+              icon="time-outline"
+              iconColor="#94a3b8"
+              title="Last Telemetry Synced"
+              value={
+                lastReportedTime
+                  ? lastReportedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                  : 'Awaiting first telemetry sync'
+              }
+              last
+            />
           </LiquidGlassCard>
         </View>
       </ScrollView>
@@ -510,6 +513,7 @@ const aStyles = StyleSheet.create({
   batteryMetaValue: { fontSize: 12.5, color: MD3.colors.onSurface, fontWeight: '700' },
   // Section
   sectionWrap: { marginBottom: 4 },
+  separator: { height: 1, backgroundColor: 'rgba(148, 163, 184, 0.14)', marginLeft: 56 },
 });
 
 // ─── iOS styles (unchanged) ───────────────────────────────────────────────────
